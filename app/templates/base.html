@@ -65,6 +65,7 @@
         </header>
 
         <main>
+            <div class="main-content-wrapper"> 
             {# vvv ADD THIS BLOCK vvv #}
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -81,6 +82,7 @@
             {# ^^^ END OF BLOCK ^^^ #}
 
             {% block content %}{% endblock %}
+            </div>
         </main>
 
         <div id="authPromptModal" class="modal">

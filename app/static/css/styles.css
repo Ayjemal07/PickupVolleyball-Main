@@ -10,6 +10,7 @@
 
 body {
   background-color: #EBE9E3; /* Fallback color */
+  background-image: url('../TopoMap.SVG.svg');
   background-repeat: repeat; /* Ensures the pattern covers the whole page */
   background-attachment: fixed;
   font-family: 'Poppins', sans-serif;
@@ -24,7 +25,7 @@ body {
 main {
   flex-grow: 1; /* Ensures the main content area grows to fill available space */
   padding-bottom: 10px; /* Adds space at the bottom of content */
-  background-color: #EBE9E3;
+  /* background-color: #EBE9E3; */
 }
 
 /* Media Queries for mobile devices */
@@ -237,6 +238,33 @@ header {
   margin-right: 1px; /* Add spacing between dropdowns */
 }
 
+/* This targets the new wrapper in base.html */
+.main-content-wrapper {
+    background-color: rgba(255, 255, 255, 0.96); /* Slightly transparent white */
+    max-width: 1200px;
+    margin: 40px auto; /* Margin creates the "gap" to see the map background */
+    padding: 40px;
+    border-radius: 20px;
+    
+    /* Stronger shadow for more "height" */
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.1);
+    
+    /* Ensures it doesn't touch screen edges on mobile */
+    width: 95%; 
+}
+
+/* Remove competing backgrounds from specific pages */
+.homepage, .page-container, .about-page-container {
+    background-color: transparent !important; 
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Make the homepage header text also pop */
+.homepage h2 {
+    background-color: transparent !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 
 /* Styles for homepage */
 
@@ -281,9 +309,11 @@ header {
   overflow: hidden;
   border: 2px solid rgba(125, 179, 176, 0.3);  /* soft teal border */
   padding: 4px; /* spacing inside the frame */
-  background-color: #fff;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Smooth hover effect */
+  overflow: hidden; /* Keeps the image inside the rounded corners */
 
 }
 
@@ -1659,9 +1689,23 @@ html, body {
 }
 
 .page-container {
-  max-width: 1200px;  /* Sets a maximum width for the content on large screens */
-  margin: 0 auto;     /* This is the magic that centers the container */
-  padding: 0 1rem;    /* Adds space on the left and right for mobile screens */
+/* Gives the container a solid color so the map doesn't bleed through the text */
+    background-color: #FFFFFF; /* Or use rgba(255, 255, 255, 0.95) for slight transparency */
+    
+    /* Creates the "floating" 3D effect */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); 
+    
+    /* Softens the edges */
+    border-radius: 12px; 
+    
+    /* Pushes the container away from the edges of the screen to show the map */
+    margin: 2rem auto; 
+    
+    /* Maximum width so it doesn't stretch too far on large screens */
+    max-width: 1200px; 
+    
+    /* Internal spacing for your content */
+    padding: 2rem;
 }
 
 /* Make Edit Modal wider */
