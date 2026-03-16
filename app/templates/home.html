@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+    <div class="homepage">
+        <div class="centered-wrapper">
+            <h2>Welcome to <span style="white-space: nowrap;">Pick Up Volleyball!</span></h2>
+            <p>Join the community, find events, and play volleyball!</p>
+        </div>
+    </div>
+    <div class="card-container">    
+        <div class="card" id="events">
+            <a href="{{ url_for('main.events') }}" class="card-link">
+                <img src="/static/images/Events.jpeg" alt="Events" class="card-image">
+                <div class="card-content">
+                    <h3>Events</h3>
+                </div>
+                <div class="card-overlay">
+                    <p>Find upcoming volleyball events near you.</p>
+                    <a href="{{ url_for('main.events') }}" class="overlay-button">See Events</a>
+                </div>
+            </a>
+        </div>
+    
+        <div class="card" id="subscriptions">
+            <a href="{{ url_for('main.subscriptions') }}" class="card-link">
+                <img src="/static/images/VolleyPasses.jpeg" alt="Volley Passes" class="card-image">
+                <div class="card-content">
+                    <h3>Volley Passes</h3>
+                </div>
+                <div class="card-overlay">
+                    <p>Get a Volley Pass to play with discounted rates!</p>
+                    <a href="{{ url_for('main.subscriptions') }}" class="overlay-button">Find out more</a>
+                </div>
+            </a>
+        </div>
+
+        <div class="card" id="about">
+            <a href="{{ url_for('main.about') }}" class="card-link">
+                <img src="/static/images/aboutus.jpeg" alt="About Us" class="card-image">
+                <div class="card-content">
+                    <h3>About Us</h3>
+                </div>
+                <div class="card-overlay">
+                    <p>Learn more about our community and mission to promote volleyball.</p>
+                    <a href="{{ url_for('main.about') }}" class="overlay-button">Find out more</a>
+                </div>
+            </a>
+        </div>
+    </div>
+    
+    
+
+    <script>
+    </script>
+{% endblock %}

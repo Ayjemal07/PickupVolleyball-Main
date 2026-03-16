@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Your Profile{% endblock %}
+
+{% block content %}
+<div class="page-container" style="padding-top: 20px; padding-bottom: 20px;">
+
+    <div class="profile-container" style="max-width: 600px; margin: auto;">
+        <h2>Account Details</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form id="profileForm" method="POST" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" class="form-control" value="{{ current_user.first_name }}" disabled>
+            </div>
+
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" class="form-control" value="{{ current_user.last_name }}" disabled>
+            </div>
+
+            <div class="form-group">
+                <label>Profile Image</label><br>
+                
+                {% if current_user.profile_image %}
+                    <img src="{{ url_for('static', filename='profile_images/' ~ avatar) }}"
+                        id="profileImagePreview" alt="Profile Image" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px; object-fit: cover;">
+                {% else %}
+                    <img src="{{ url_for('static', filename='profile_images/default-avatar.jpeg') }}" 
+                        id="profileImagePreview" alt="Profile Image" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px; object-fit: cover;">
+                {% endif %}
+
+                <input type="file" id="imageUploadInput" class="form-control" accept="image/*">
+
+                <div id="cropperContainer" style="display:none; margin-top: 15px;">
+                    <p>Crop your new image:</p>
+                    <div>
+                        <img id="imageToCrop" style="max-width: 100%;">
+                    </div>
+                    <button type="button" id="cropButton" class="btn btn-primary" style="margin-top: 10px;">Crop Image</button>
+                </div>
+
+                <input type="hidden" id="croppedImageData" name="cropped_image_data">
+            </div>
+
+            <button type="submit" name="update_details_submit" class="btn btn-primary">Update Profile Picture</button>
+        </form>
+
+        <hr>
+
+        <h4>Change Password</h4>
+        
+           <button type="button" id="changePasswordBtn" class="btn btn-secondary">Change Password</button>
+            <div id="passwordFormContainer" style="display:none; margin-top: 20px;">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="form-group">
+                        <label for="new_password">New Password</label>
+                        <div class="password-wrapper">
+                            {{ form.new_password(class="form-control", id="new_password") }}
+                            <i class="bi bi-eye-slash toggle-password"></i>
+                        </div>
+                        <div id="password-strength">
+                            <small class="strength-check" id="length">8+ chars</small>
+                            <small class="strength-check" id="upper">1 uppercase</small>
+                            <small class="strength-check" id="lower">1 lowercase</small>
+                            <small class="strength-check" id="num">1 number</small>
+                            <small class="strength-check" id="spec">1 symbol</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm New Password</label>
+                        <div class="password-wrapper">
+                            {{ form.confirm_password(class="form-control", id="confirm_password") }}
+                            <i class="bi bi-eye-slash toggle-password"></i>
+                        </div>
+                        <div id="password-match-success" class="success-message" style="display: none;">✅ Password is strong and passwords match!</div>
+                        <div id="password-mismatch-error" class="error-message" style="display: none;">Passwords must match.</div>
+                        <div id="password-weak-error" class="error-message" style="display: none;">Password does not meet all requirements.</div>
+                    </div>
+                    
+                    <button type="submit" name="change_password_submit" class="btn btn-primary">Save New Password</button>
+                </form>
+            </div>
+        <hr>
+        <div class="benefits-container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="color: teal; margin: 0;">Total Credit Balance: {{ total_credits }} Events</h4>
+            </div>
+            
+            <hr>
+            
+            <h5>Credit History</h5>
+            {% if active_credits %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Source</th>
+                            <th>Description</th>
+                            <th>Balance</th>
+                            <th>Expires On</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for credit in active_credits %}
+                        <tr>
+                            <td>
+                                {% if credit.source_type == 'promo' %}
+                                    <span class="badge bg-info text-dark">Promo</span>
+                                {% elif credit.source_type == 'cancellation' %}
+                                    <span class="badge bg-warning text-dark">Cancellation</span>
+                                {% elif credit.source_type == 'subscription' %}
+                                    <span class="badge bg-success">Subscription</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Other</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ credit.description }}</td>
+                            <td><strong>{{ credit.balance }}</strong></td>
+                            {% set days_left = (credit.expiry_date - today).days %}
+                            <td style="{{ 'color: red; font-weight: bold;' if days_left < 7 else '' }}">
+                                {{ credit.expiry_date.strftime('%b %d, %Y') }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted">You currently have no active event credits.</p>
+            {% endif %}
+        </div>
+
+        <hr>
+
+        <div class="form-group">
+            <h4>Signed Waiver</h4>
+            <a href="{{ url_for('static', filename='waivers/waiver_' ~ current_user.id ~ '.pdf') }}" target="_blank" class="btn btn-outline-secondary">
+                View Signed Waiver
+            </a>
+        </div>
+    </div>
+</div>
+
+
+
+{% block page_scripts %}
+<script>
+    var subStatus = {{ session.get('sub_status')|default(None)|tojson|safe }} || {{ request.args.get('sub_status')|tojson|safe }};
+    var userEventCredits = {{ current_user.event_credits|tojson }};
+
+    if (subStatus === 'pending') {
+        let previousCredits = userEventCredits;
+        const pollInterval = setInterval(async () => {
+            const response = await fetch('/api/user/subscription_status');
+            const data = await response.json();
+            if (data.event_credits > previousCredits) {
+                clearInterval(pollInterval);
+                location.reload(); 
+            }
+        }, 5000); 
+    }
+
+    // Image Cropping Logic ---
+    const imageUploadInput = document.getElementById('imageUploadInput');
+    const cropperContainer = document.getElementById('cropperContainer');
+    const imageToCrop = document.getElementById('imageToCrop');
+    const cropButton = document.getElementById('cropButton');
+    const hiddenInput = document.getElementById('croppedImageData');
+    let cropper;
+
+    // Listen for when a user selects a file
+    imageUploadInput.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                imageToCrop.src = reader.result;
+                cropperContainer.style.display = 'block';
+
+                // Destroy the old cropper instance if it exists
+                if (cropper) {
+                    cropper.destroy();
+                }
+
+                // Initialize Cropper.js
+                cropper = new Cropper(imageToCrop, {
+                    aspectRatio: 1, // Forces a square crop
+                    viewMode: 1,
+                    background: false,
+                    autoCropArea: 0.8,
+                });
+            };
+            reader.readAsDataURL(files[0]);
+        }
+    });
+
+    // Listen for when the user clicks the "Crop Image" button
+    cropButton.addEventListener('click', () => {
+            if (!cropper) {
+                return;
+            }
+            const canvas = cropper.getCroppedCanvas({
+                width: 256,
+                height: 256,
+                imageSmoothingQuality: 'high',
+            });
+
+            const croppedDataURL = canvas.toDataURL('image/png');
+            hiddenInput.value = croppedDataURL;
+
+            // --- THIS IS THE FIX ---
+            // Find the preview image by its new ID and update its source
+            const previewImage = document.getElementById('profileImagePreview');
+            if (previewImage) {
+                previewImage.src = croppedDataURL;
+            }
+            // --- END OF FIX ---
+
+            // Update the UI to show success
+            cropperContainer.innerHTML = '<p style="color: green; font-weight: bold;">Image is cropped. Click "Update Profile Picture" to save </p>';
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const profileForm = document.getElementById('profileForm');
+        profileForm.addEventListener('submit', function(e) {
+            const hiddenInput = document.getElementById('croppedImageData');
+            
+            // If the hidden input is empty, no image has been cropped
+            if (!hiddenInput.value) {
+                e.preventDefault(); // Stop the form from sending
+                alert("Please select and crop an image before updating.");
+            }
+        });
+        // --- Logic to toggle the password form visibility ---
+        document.getElementById('changePasswordBtn').addEventListener('click', function() {
+            const passwordForm = document.getElementById('passwordFormContainer');
+            if (passwordForm.style.display === 'none') {
+                passwordForm.style.display = 'block';
+                this.textContent = 'Cancel';
+            } else {
+                passwordForm.style.display = 'none';
+                this.textContent = 'Change Password';
+            }
+        });
+
+        // --- Logic to toggle password visibility (eye icon) ---
+        document.querySelectorAll('.toggle-password').forEach(icon => {
+            icon.addEventListener('click', function () {
+                const passwordField = this.previousElementSibling;
+                const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordField.setAttribute('type', type);
+                this.classList.toggle('bi-eye');
+                this.classList.toggle('bi-eye-slash');
+            });
+        });
+
+        // --- NEW: Logic for real-time password strength validation ---
+        const passwordInput = document.getElementById('new_password');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        const strengthChecks = {
+            length: document.getElementById('length'),
+            upper: document.getElementById('upper'),
+            lower: document.getElementById('lower'),
+            num: document.getElementById('num'),
+            spec: document.getElementById('spec')
+        };
+
+        function isPasswordStrong(password) {
+            return (
+                password.length >= 8 &&
+                /[A-Z]/.test(password) &&
+                /[a-z]/.test(password) &&
+                /\d/.test(password) &&
+                /[!@#$%^&*(),.?":{}|<>]/.test(password)
+            );
+        }
+
+        passwordInput.addEventListener('input', function() {
+            const pass = passwordInput.value;
+            strengthChecks.length.classList.toggle('valid', pass.length >= 8);
+            strengthChecks.upper.classList.toggle('valid', /[A-Z]/.test(pass));
+            strengthChecks.lower.classList.toggle('valid', /[a-z]/.test(pass));
+            strengthChecks.num.classList.toggle('valid', /\d/.test(pass));
+            strengthChecks.spec.classList.toggle('valid', /[!@#$%^&*(),.?":{}|<>]/.test(pass));
+            checkPasswordMatch(); // Check match on new password input as well
+        });
+
+        function checkPasswordMatch() {
+            const successMsg = document.getElementById('password-match-success');
+            const mismatchMsg = document.getElementById('password-mismatch-error');
+            const weakMsg = document.getElementById('password-weak-error');
+            
+            if (!successMsg || !mismatchMsg || !weakMsg) return;
+
+            const pass1 = passwordInput.value;
+            const pass2 = confirmPasswordInput.value;
+
+            if (pass2 === '') {
+                successMsg.style.display = 'none';
+                mismatchMsg.style.display = 'none';
+                weakMsg.style.display = 'none';
+                return;
+            }
+
+            if (pass1 === pass2) {
+                if (isPasswordStrong(pass1)) {
+                    successMsg.style.display = 'block';
+                    mismatchMsg.style.display = 'none';
+                    weakMsg.style.display = 'none';
+                } else {
+                    successMsg.style.display = 'none';
+                    mismatchMsg.style.display = 'none';
+                    weakMsg.style.display = 'block';
+                }
+            } else {
+                successMsg.style.display = 'none';
+                mismatchMsg.style.display = 'block';
+                weakMsg.style.display = 'none';
+            }
+        }
+
+        confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+    });
+    </script>
+
+    <style>
+        /* Add this style to your main styles.css or here in the template */
+        .strength-check { color: grey; margin-right: 10px; font-size: 0.8em; }
+        .strength-check.valid { color: green; text-decoration: line-through; }
+        .error-message { color: red; font-size: 0.8em; margin-top: 5px; }
+        .success-message { color: green; font-size: 0.8em; margin-top: 5px; }
+    </style>
+
+{% endblock %} {% endblock %}

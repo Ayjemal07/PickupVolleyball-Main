@@ -1,0 +1,16 @@
+Flask==2.2.5
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+WTForms==3.0.1
+Flask-WTF==1.2.2
+Werkzeug==3.1.2
+gunicorn==20.1.0
+flask-marshmallow
+email_validator
+marshmallow-sqlalchemy
+python-dotenv
+Flask-Migrate
+mysqlclient
+pymysql
+Flask-Mail==0.10.1
+reportlab>=3.5.0

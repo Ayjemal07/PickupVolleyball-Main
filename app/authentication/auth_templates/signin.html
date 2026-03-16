@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .password-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    .password-wrapper .input-field {
+        width: 100%;
+        padding-right: 40px; /* Make space for the icon */
+    }
+    .password-wrapper .toggle-password {
+        position: absolute;
+        right: 15px;
+        cursor: pointer;
+        color: #6c757d; /* A neutral color */
+    }
+</style>
+
+<div class="full-width-container">
+    <div class="form-background">
+        <h2>Sign In</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div id="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('auth.signin') }}" method="POST" class="form-style" id="signin-form">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required class="input-field" autocomplete="email" placeholder="Your email address">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" name="password" required class="input-field" autocomplete="current-password" placeholder="Enter your password">
+                    <i class="bi bi-eye-slash toggle-password"></i>
+                </div>
+            </div>
+            <button type="submit" class="submit-btn" id="signin-submit">Sign In</button>
+            <div id="spinner" class="spinner" style="display: none;"></div>
+        </form>
+        <br>
+        <p><a href="{{ url_for('auth.forgot_password') }}">Forgot your password?</a></p>
+        <p class="register-link">Don’t have an account? <a href="{{ url_for('auth.register') }}">Register here</a>.</p>
+    </div>
+</div>
+
+<div id="welcome-popup" class="popup-container" style="display: none;">
+    <div class="popup-content">
+        <button class="close-btn" onclick="closePopup()">x</button>
+        <p>
+            <span>Hi, {{ first_name }}!</span>
+            <span>Welcome to Pickup Volleyball.</span>
+            <span>Explore volleyball events <a href="{{ url_for('main.events') }}">here</a>.</span>
+        </p>
+    </div>
+</div>
+
+
+<script>
+    document.getElementById("signin-form").addEventListener("submit", function (e) {
+        const submitButton = document.getElementById("signin-submit");
+        const spinner = document.getElementById("spinner");
+        submitButton.disabled = true;
+        spinner.style.display = "block";
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const firstName = "{{ first_name|default('') }}";
+        const popup = document.getElementById("welcome-popup");
+
+        if (firstName.trim()) {
+            popup.style.display = "block";
+            document.addEventListener("click", function (event) {
+                if (!popup.contains(event.target) && popup.style.display === "block") {
+                    closePopup();
+                }
+            });
+        }
+
+        // --- START: Show Password Toggle Logic (copied from register.html) ---
+        const togglePasswordIcons = document.querySelectorAll('.toggle-password');
+        togglePasswordIcons.forEach(icon => {
+            icon.addEventListener('click', function () {
+                // Find the password input field right before the icon
+                const passwordField = this.previousElementSibling;
+                
+                // Toggle the input type between "password" and "text"
+                const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordField.setAttribute('type', type);
+                
+                // Toggle the icon's appearance between the eye and slashed-eye
+                this.classList.toggle('bi-eye');
+                this.classList.toggle('bi-eye-slash');
+            });
+        });
+        // --- END: Show Password Toggle Logic ---
+    });
+
+    function closePopup() {
+        const popup = document.getElementById("welcome-popup");
+        popup.style.display = "none";
+        setTimeout(() => {
+            window.location.href = "{{ url_for('main.home') }}";
+        }, 100);
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Hosting | Pick Up Volleyball PDX{% endblock %}
+
+{% block content %}
+<section class="hosting-section">
+    <div class="hosting-container">
+        <div class="hosting-image-container">
+            <img src="{{ url_for('static', filename='images/hostingbackground.jpeg') }}" alt="Gym Play" class="hosting-image">
+            
+            <div class="hosting-text-bubble">
+                <h1>Want to Host Events?</h1>
+                <p>You will be responsible for keeping events flowing, answering questions, and embodying our group's culture of inclusivity and growth. Plus, Free volleyball!</p>
+                <p>And don’t worry, we will have someone show you the ropes before you run an event.</p>
+                <p>If you think you’d be a good fit for the role, please fill out the following application:</p>
+                <a href="https://forms.gle/DEk4yhuGr8J56acr5" target="_blank" class="hosting-application-link">
+                    Pick Up Volleyball PDX Hosting Application
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

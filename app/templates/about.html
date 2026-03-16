@@ -1,0 +1,108 @@
+{% if not embedded %}
+    {% extends "base.html" %}
+    {% block title %} ABOUT US {% endblock %}
+{% endif %}
+
+{% block content %}
+<section class="about-page-container">
+
+    <div class="about-text-content">
+        <h1>About Us</h1>
+        <p>Founded in Spring 2021, this group is an inclusive, ever-growing community of people who love the game.</p>
+        <blockquote>
+            <strong>We offer open gyms, tournaments, and clinics year-round, each catered to a variety of skill levels so that everyone can play and get better.</strong>
+        </blockquote>
+        <p>You can expect a welcoming, supportive environment from hosts and your fellow players.</p>
+        <p><a href="{{ url_for('main.events') }}" class="event-link">Check out our events page to get started!</a></p>
+    </div>
+
+    <div class="slideshow-container">
+
+        <div class="mySlides">
+            <img src="{{ url_for('static', filename='images/AboutUs1.jpeg') }}" style="width:100%">
+        </div>
+
+       <div class="mySlides">
+            <img src="{{ url_for('static', filename='images/AboutUs2.jpeg') }}" style="width:100%">
+        </div>
+
+        <div class="mySlides">
+            <img src="{{ url_for('static', filename='images/AboutUs3.jpeg') }}" style="width:100%">
+        </div>
+
+        <div class="mySlides">
+            <img src="{{ url_for('static', filename='images/AboutUs4.jpeg') }}" style="width:100%">
+        </div>
+
+        <div class="mySlides">
+            <img src="{{ url_for('static', filename='images/AboutUs5.jpeg') }}" style="width:100%">
+        </div>
+
+        <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
+        <a class="next" onclick="plusSlides(1)">&#10095;</a>
+    </div>
+    <br>
+
+    <div style="text-align:center">
+        <span class="dot" onclick="currentSlide(1)"></span>
+        <span class="dot" onclick="currentSlide(2)"></span>
+        <span class="dot" onclick="currentSlide(3)"></span>
+        <span class="dot" onclick="currentSlide(4)"></span>
+        <span class="dot" onclick="currentSlide(5)"></span>
+    </div>
+</section>
+
+<script>
+    let slideIndex = 0;
+    let slideTimeout = null;
+
+    // A single function to display a specific slide
+    function showSlide(n) {
+        let i;
+        let slides = document.getElementsByClassName("mySlides");
+        let dots = document.getElementsByClassName("dot");
+        if (slides.length === 0) return; // Exit if no slides are found
+
+        // Loop the slide index
+        if (n > slides.length) { slideIndex = 1; }
+        if (n < 1) { slideIndex = slides.length; }
+
+        // Hide all slides and deactivate all dots
+        for (i = 0; i < slides.length; i++) {
+            slides[i].classList.remove("active-slide");
+        }
+        for (i = 0; i < dots.length; i++) {
+            dots[i].className = dots[i].className.replace(" active", "");
+        }
+
+        // Show the correct slide and activate the corresponding dot
+        slides[slideIndex - 1].classList.add("active-slide");
+        dots[slideIndex - 1].className += " active";
+    }
+
+    // Function to handle automatic advancement
+    function advanceAuto() {
+        clearTimeout(slideTimeout); // Clear any existing timer
+        slideIndex++;
+        showSlide(slideIndex);
+        // Set a new timer to call this function again after 3 seconds
+        slideTimeout = setTimeout(advanceAuto, 3000); // Changed from 4000ms to 3000ms
+    }
+
+    // Functions for manual button clicks
+    function plusSlides(n) {
+        clearTimeout(slideTimeout); // Stop auto-play on manual click
+        showSlide(slideIndex += n);
+        slideTimeout = setTimeout(advanceAuto, 5000); // Restart auto-play after 5 seconds
+    }
+
+    function currentSlide(n) {
+        clearTimeout(slideTimeout); // Stop auto-play on manual click
+        showSlide(slideIndex = n);
+        slideTimeout = setTimeout(advanceAuto, 5000); // Restart auto-play after 5 seconds
+    }
+
+    // Initial start of the slideshow
+    advanceAuto();
+</script>
+{% endblock %}
