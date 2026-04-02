@@ -195,7 +195,7 @@ function getActionButtonHTML(event) {
     // Default case: available to attend
     return `
         <button
-            class="btn btn-success custom-attend-button"
+            class="custom-attend-button"
             data-event-id="${event.id}"
             data-title="${event.title}"
             data-time="${event.formatted_date}, ${formatEventTime(event.start)}"
@@ -342,6 +342,11 @@ document.addEventListener('DOMContentLoaded', function () {
             tabs.forEach(t => t.classList.remove('active'));
             tabPanes.forEach(p => p.classList.remove('active', 'show'));
             this.classList.add('active');
+            const titleEl = document.getElementById('eventsActiveTitle');
+            if (titleEl && this.dataset.title) {
+                titleEl.textContent = this.dataset.title;
+            }
+
             const activePaneId = this.getAttribute('href').substring(1);
             const activePane = document.getElementById(activePaneId);
             activePane.classList.add('active');

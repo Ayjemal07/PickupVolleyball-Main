@@ -4,9 +4,16 @@
 
 {% block content %}
     <div class="homepage">
-        <div class="centered-wrapper">
-            <h2>Welcome to <span style="white-space: nowrap;">Pick Up Volleyball!</span></h2>
-            <p>Join the community, find events, and play volleyball!</p>
+        <div class="centered-wrapper hero-text-group">
+            <div class="text-chip title-chip">
+                <h2>
+                    <span class="pink-highlight">Welcome to Pick Up Volleyball!</span>
+                </h2>
+            </div>
+
+            <div class="text-chip subtitle-chip">
+                <p>Join the community, find events, and play volleyball!</p>
+            </div>
         </div>
     </div>
     <div class="card-container">    
@@ -17,8 +24,7 @@
                     <h3>Events</h3>
                 </div>
                 <div class="card-overlay">
-                    <p>Find upcoming volleyball events near you.</p>
-                    <a href="{{ url_for('main.events') }}" class="overlay-button">See Events</a>
+                    <a href="{{ url_for('main.events') }}" class="overlay-button">Find volleyball events near you.</a>
                 </div>
             </a>
         </div>
@@ -30,8 +36,7 @@
                     <h3>Volley Passes</h3>
                 </div>
                 <div class="card-overlay">
-                    <p>Get a Volley Pass to play with discounted rates!</p>
-                    <a href="{{ url_for('main.subscriptions') }}" class="overlay-button">Find out more</a>
+                    <a href="{{ url_for('main.subscriptions') }}" class="overlay-button">Get a Volley Pass to play with discounted rates!</a>
                 </div>
             </a>
         </div>
@@ -43,8 +48,7 @@
                     <h3>About Us</h3>
                 </div>
                 <div class="card-overlay">
-                    <p>Learn more about our community and mission to promote volleyball.</p>
-                    <a href="{{ url_for('main.about') }}" class="overlay-button">Find out more</a>
+                    <a href="{{ url_for('main.about') }}" class="overlay-button">Learn more about our community and mission to promote volleyball.</a>
                 </div>
             </a>
         </div>
