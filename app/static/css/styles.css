@@ -279,7 +279,7 @@ header {
 .centered-wrapper {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0.3rem 0.3rem;
+  padding: 0.3rem 0.5rem;
   text-align: center;
 }
 
@@ -2362,7 +2362,7 @@ header, .top-bar {
 }
 .title-chip h2 {
   margin: 0;
-  font-size: 2.2rem;
+  font-size: 2.6rem;
   line-height: 1.15;
   font-weight: 700;
   white-space: nowrap;
@@ -2372,7 +2372,7 @@ header, .top-bar {
 
 .subtitle-chip p {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.25rem;
   line-height: 1.25;
   font-weight: 700;
   white-space: nowrap;
@@ -2403,6 +2403,17 @@ header, .top-bar {
 
 
 @media (max-width: 768px) {
+  .text-chip {
+    max-width: calc(100vw - 24px);
+    overflow: visible;
+  }
+
+  .title-chip,
+  .subtitle-chip {
+    min-width: 0;
+    width: auto;
+  }
+
   .title-chip h2,
   .subtitle-chip p {
     white-space: nowrap;
@@ -2410,7 +2421,7 @@ header, .top-bar {
   }
 
   .title-chip h2 {
-    font-size: 1.6rem;
+    font-size: 1.35rem;
   }
 
   .subtitle-chip p {
@@ -2423,13 +2434,8 @@ header, .top-bar {
 
   .subtitle-chip {
     padding: 8px 12px;
-    margin-top: -6px;
+    margin-top: 0.5rem;
     margin-left: 0;
-  }
-
-  .text-chip {
-    max-width: calc(100vw - 20px);
-    overflow: hidden;
   }
 }
 
