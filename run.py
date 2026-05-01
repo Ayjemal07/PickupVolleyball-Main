@@ -5,9 +5,9 @@ app = create_app()
 
 if __name__ == '__main__':
     # app.run(debug=True)
-    host = 'localhost'  # Listen on all network interfaces
+    host = '0.0.0.0'  # Listen on all network interfaces
     port = int(5000)
     if os.name == "nt":
-        app.run(debug=True)
+        app.run(host=host, debug=True)
     else:
         app.run(host=host, port=port)
