@@ -269,7 +269,6 @@ header {
 .homepage, .page-container{
     background-color: transparent !important; 
     padding: 0 !important;
-    margin: 0 !important;
 }
 
 
@@ -1281,16 +1280,23 @@ html {
 }
 
 /* Event Card */
-/* --- Updated Event Card Styles --- */
-
-/* 1. Use CSS Grid for the main container */
 .events-container {
   display: grid;
-  /* Create responsive columns: they will be at least 350px wide, 
-     but can grow to fill the space. The number of columns adjusts automatically. */
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px; /* The space between your cards */
-  padding: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Force more columns on big screens */
+@media (min-width: 1200px) {
+  .events-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1600px) {
+  .events-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 /* 2. Make each card a flex container to control its internal layout */
@@ -1899,15 +1905,10 @@ html, body {
 }
 
 .page-container {
-    
-    /* Pushes the container away from the edges of the screen to show the map */
-    margin: 2rem auto; 
-    
-    /* Maximum width so it doesn't stretch too far on large screens */
-    max-width: 1200px; 
-    
-    /* Internal spacing for your content */
-    padding: 2rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 2rem;
 }
 
 /* Make Edit Modal wider */
