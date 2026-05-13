@@ -1295,39 +1295,60 @@ function renderEventCards(eventsToRender, containerType, flashMessage, flashEven
         }
 
         if (notGoingBtn) {
-            notGoingBtn.addEventListener('click', function() {
-                const message = "This will remove everyone in your rsvp. You and your guests (if any) will not be refunded.";
-                
-                showConfirmationModal(message, () => {
-                    if (!currentEventId) {
-                        alert('Error: Event ID not found.');
-                        if (confirmationModal) confirmationModal.style.display = 'none';
+            notGoingBtn.addEventListener('click', async function() {
+                if (!currentEventId) {
+                    alert('Error: Event ID not found.');
+                    return;
+                }
+
+                try {
+                    const policyResponse = await fetch(`/api/rsvp/cancel-policy/${currentEventId}`);
+                    const policyData = await policyResponse.json();
+
+                    if (!policyResponse.ok) {
+                        alert('Error: ' + (policyData.error || 'Could not check RSVP cancellation policy.'));
                         return;
                     }
 
-                    fetch(`/api/rsvp/delete/${currentEventId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            sessionStorage.setItem('flashMessage', data.message);
-                            sessionStorage.setItem('flashEventId', currentEventId);
-                            window.location.reload();
-                        } else {
-                            alert('Error: ' + (data.error || 'Could not cancel RSVP.'));
-                            // Hide modal on error
+                    const message = policyData.confirmation_message;
+
+                    showConfirmationModal(message, () => {
+                        fetch(`/api/rsvp/delete/${currentEventId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                sessionStorage.setItem('flashMessage', data.message);
+                                sessionStorage.setItem('flashEventId', currentEventId);
+                                window.location.reload();
+                            } else {
+                                alert('Error: ' + (data.error || 'Could not cancel RSVP.'));
+                                if (confirmationModal) confirmationModal.style.display = 'none';
+
+                                if (confirmBtn) {
+                                    confirmBtn.disabled = false;
+                                    confirmBtn.innerHTML = 'Confirm';
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error canceling RSVP:', error);
+                            alert('An unexpected error occurred. Please try again.');
                             if (confirmationModal) confirmationModal.style.display = 'none';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error canceling RSVP:', error);
-                        alert('An unexpected error occurred. Please try again.');
-                        // Hide modal on error
-                        if (confirmationModal) confirmationModal.style.display = 'none';
+
+                            if (confirmBtn) {
+                                confirmBtn.disabled = false;
+                                confirmBtn.innerHTML = 'Confirm';
+                            }
+                        });
                     });
-                });
+
+                } catch (error) {
+                    console.error('Error checking RSVP cancellation policy:', error);
+                    alert('Could not check cancellation policy. Please try again.');
+                }
             });
         }
 

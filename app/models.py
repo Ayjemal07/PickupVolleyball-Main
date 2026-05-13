@@ -72,7 +72,7 @@ class User(UserMixin, db.Model):
             return next_grant.expiry_date.strftime('%b %d, %Y')
         return None
 
-    def spend_credits(self, amount_needed):
+    def spend_credits(self, amount_needed, event_title="an event"):
         """
         FIFO Logic: Deducts credits from grants expiring soonest.
         Returns True if successful, False if insufficient funds.
@@ -107,6 +107,14 @@ class User(UserMixin, db.Model):
         
         # If we successfully deducted everything
         if remaining_to_pay == 0:
+            transaction = CreditTransaction(
+                user_id=self.id,
+                amount=-amount_needed, # Negative amount for spending
+                transaction_type='spent',
+                description=f"RSVP for {event_title}"
+            )
+            db.session.add(transaction)
+
             db.session.commit()
             return True
         else:
@@ -226,3 +234,56 @@ class CreditGrant(db.Model):
     expiry_date = db.Column(db.Date, nullable=False)
 
     user = db.relationship('User', backref='credit_grants')
+
+
+class CreditTransaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(36), db.ForeignKey('user.id'), nullable=False)
+    # amount will be positive (+) for earned/refunded, and negative (-) for spent/expired
+    amount = db.Column(db.Integer, nullable=False) 
+    transaction_type = db.Column(db.String(50), nullable=False) # 'earned', 'spent', 'expired', 'refunded'
+    description = db.Column(db.String(255), nullable=True) # e.g., "RSVP for Night Game", "Nov Subscription"
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='credit_transactions')
+
+class PaymentTransaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.String(36), db.ForeignKey('user.id'), nullable=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=True)
+    subscription_id = db.Column(db.Integer, db.ForeignKey('subscription.id'), nullable=True)
+
+    paypal_order_id = db.Column(db.String(255), nullable=True)
+    paypal_capture_id = db.Column(db.String(255), unique=True, nullable=True)
+    paypal_subscription_id = db.Column(db.String(255), nullable=True)
+    paypal_webhook_event_id = db.Column(db.String(255), nullable=True)
+
+    platform_email = db.Column(db.String(150), nullable=True)
+    paypal_payer_email = db.Column(db.String(150), nullable=True)
+    custom_id = db.Column(db.String(255), nullable=True)
+
+    amount = db.Column(db.Float, nullable=True)
+    currency = db.Column(db.String(10), default='USD')
+
+    transaction_type = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(50), nullable=False, default='completed')
+    description = db.Column(db.String(255), nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='payment_transactions')
+    event = db.relationship('Event', backref='payment_transactions')
+    subscription = db.relationship('Subscription', backref='payment_transactions')
+
+
+class PayPalWebhookEvent(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    webhook_event_id = db.Column(db.String(255), unique=True, nullable=False)
+    event_type = db.Column(db.String(100), nullable=False)
+    paypal_subscription_id = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(50), default='received')
+    notes = db.Column(db.String(255), nullable=True)
+
+    received_at = db.Column(db.DateTime, default=datetime.utcnow)

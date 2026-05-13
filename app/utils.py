@@ -27,10 +27,11 @@ def cleanup_user_expired_credits(user):
     if not user.is_authenticated:
         return
 
-    today = date.today()
+    safety_buffer = date.today() - timedelta(days=1)
+
     expired_grants = CreditGrant.query.filter(
         CreditGrant.user_id == user.id, 
-        CreditGrant.expiry_date < today
+        CreditGrant.expiry_date < safety_buffer
     ).all()
 
     if expired_grants:

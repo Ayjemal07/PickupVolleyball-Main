@@ -2585,3 +2585,73 @@ header, .top-bar {
 
   border: 1.5px solid rgba(40, 40, 40, 0.6);
 }
+
+
+/* ===== Profile Page Styling ===== */
+
+.profile-page-wrapper {
+  width: 100%;
+  padding: 2rem 1rem 3rem;
+}
+
+.profile-container.white-card {
+  width: min(92%, 720px);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2.75rem 2.5rem 3rem;
+
+  background: rgba(255, 255, 255, 0.94);
+  border: 1.5px solid rgba(40, 40, 40, 0.6);
+  border-radius: 28px;
+  box-shadow: 6px 6px 0 rgba(230, 196, 236, 0.8);
+}
+
+.profile-container h2,
+.profile-container h4,
+.profile-container h5 {
+  color: #111;
+}
+
+.profile-container h2 {
+  font-size: 2.2rem;
+  margin-bottom: 1rem;
+}
+
+.profile-container .form-control {
+  border-radius: 8px;
+}
+
+.profile-container hr {
+  margin: 1.25rem 0;
+  border-color: rgba(80, 80, 80, 0.25);
+}
+
+.profile-container .btn-outline-secondary {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.profile-container table {
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .profile-page-wrapper {
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  .profile-container.white-card {
+    width: 100%;
+    padding: 2rem 1.25rem 2.25rem;
+  }
+
+  .profile-container h2 {
+    font-size: 1.9rem;
+  }
+
+  .profile-container table {
+    font-size: 0.85rem;
+  }
+}

@@ -258,6 +258,7 @@
             const paypalButtonContainer = document.getElementById('paypal-button-container');
 
             let selectedTier = null;
+            let actionType = null;
             let isPayPalRendered = false;
 
             // --- Define the messages for each action ---
@@ -413,8 +414,7 @@
                 paypal.Buttons({
                     createSubscription: function(data, actions) {
                         let fetchUrl;
-                        // Check the planId to determine the correct backend route
-                        if (planId === '{{ paypal_plan_id_tier2 }}' && document.querySelector('.btn-upgrade[data-tier="2"]:not([style*="display: none"])')) {
+                        if (actionType === 'upgrade') {
                             fetchUrl = '/api/subscription/upgrade';
                         } else {
                             fetchUrl = '/api/paypal/create-subscription';
