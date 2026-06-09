@@ -41,6 +41,7 @@ PAYPAL_SECRET = os.getenv("PAYPAL_SECRET")
 PAYPAL_BASE = "https://api-m.paypal.com"
 PAYPAL_PLAN_ID_TIER1 = os.getenv("PAYPAL_PLAN_ID_TIER1")
 PAYPAL_PLAN_ID_TIER2 = os.getenv("PAYPAL_PLAN_ID_TIER2")
+RSVP_CANCELLATION_CREDIT_CUTOFF_HOURS = 48
 
 def spend_user_credit(user, amount_needed=1):
     """
@@ -1815,7 +1816,7 @@ def delete_rsvp(event_id):
 
     try:
         hours_until_event = (event_start_datetime - now).total_seconds() / 3600
-        credit_eligible = hours_until_event >= 72
+        credit_eligible = hours_until_event >= RSVP_CANCELLATION_CREDIT_CUTOFF_HOURS
 
         spots_to_credit = 1 + (rsvp.guest_count or 0)
         credits_issued = 0
@@ -1854,7 +1855,7 @@ def delete_rsvp(event_id):
         else:
             message = (
                 'Your RSVP has been canceled. '
-                'Because this cancellation was made less than 72 hours before the event, '
+                f'Because this cancellation was made less than {RSVP_CANCELLATION_CREDIT_CUTOFF_HOURS} hours before the event, '
                 'event credits were not issued.'
             )
 
@@ -1895,13 +1896,13 @@ def get_rsvp_cancel_policy(event_id):
     if credit_eligible:
         confirmation_message = (
             f'This will remove everyone in your RSVP. '
-            f'Because you are updating your RSVP at least 72 hours before the event, '
+            f'Because you are updating your RSVP at least {RSVP_CANCELLATION_CREDIT_CUTOFF_HOURS} hours before the event, '
             f'you will receive {spots_to_credit} event credit(s) for you and your guests, if any.'
         )
     else:
         confirmation_message = (
             'This will remove everyone in your RSVP. '
-            'Because this RSVP is being canceled less than 72 hours before the event, '
+            f'Because this RSVP is being canceled less than {RSVP_CANCELLATION_CREDIT_CUTOFF_HOURS} hours before the event, '
             'event credits will not be issued.'
         )
 
