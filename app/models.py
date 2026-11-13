@@ -49,7 +49,8 @@ class User(UserMixin, db.Model):
         Calculates total available credits dynamically from the ledger.
         This is the Single Source of Truth.
         """
-        today = date.today()
+        from .subscription_credits import credit_day
+        today = credit_day()
         # Sum balances of all grants that are not expired
         total = db.session.query(db.func.sum(CreditGrant.balance)).filter(
             CreditGrant.user_id == self.id,
@@ -61,7 +62,8 @@ class User(UserMixin, db.Model):
     @property
     def next_credit_expiry(self):
         """Returns the date of the credit that expires soonest."""
-        today = date.today()
+        from .subscription_credits import credit_day
+        today = credit_day()
         next_grant = CreditGrant.query.filter(
             CreditGrant.user_id == self.id,
             CreditGrant.balance > 0,
@@ -72,54 +74,31 @@ class User(UserMixin, db.Model):
             return next_grant.expiry_date.strftime('%b %d, %Y')
         return None
 
-    def spend_credits(self, amount_needed, event_title="an event"):
-        """
-        FIFO Logic: Deducts credits from grants expiring soonest.
-        Returns True if successful, False if insufficient funds.
-        """
-        today = date.today()
-        
-        # 1. Check total balance first
-        if self.event_credits < amount_needed:
+    def spend_credits(self, amount_needed, event_title="an event", *, commit=False):
+        """Serialize spending with issuance; callers may include RSVP in the transaction."""
+        if not isinstance(amount_needed, int) or isinstance(amount_needed, bool) or amount_needed <= 0:
+            raise ValueError("Credit amount must be a positive integer")
+        from .subscription_credits import credit_day
+        User.query.filter_by(id=self.id).with_for_update().first()
+        grants = CreditGrant.query.filter(CreditGrant.user_id == self.id,
+            CreditGrant.balance > 0, CreditGrant.expiry_date >= credit_day()).order_by(
+                CreditGrant.expiry_date.asc(), CreditGrant.id.asc()).populate_existing().with_for_update().all()
+        if sum(g.balance for g in grants) < amount_needed:
             return False
-
-        # 2. Get active grants sorted by expiry (Soonest first)
-        active_grants = CreditGrant.query.filter(
-            CreditGrant.user_id == self.id,
-            CreditGrant.balance > 0,
-            CreditGrant.expiry_date >= today
-        ).order_by(CreditGrant.expiry_date.asc()).all()
-
-        remaining_to_pay = amount_needed
-
-        for grant in active_grants:
-            if remaining_to_pay <= 0:
+        remaining = amount_needed
+        for grant in grants:
+            deduction = min(grant.balance, remaining)
+            grant.balance -= deduction
+            remaining -= deduction
+            if remaining == 0:
                 break
-            
-            if grant.balance >= remaining_to_pay:
-                # This grant covers the rest
-                grant.balance -= remaining_to_pay
-                remaining_to_pay = 0
-            else:
-                # Take all from this grant and move to next
-                remaining_to_pay -= grant.balance
-                grant.balance = 0
-        
-        # If we successfully deducted everything
-        if remaining_to_pay == 0:
-            transaction = CreditTransaction(
-                user_id=self.id,
-                amount=-amount_needed, # Negative amount for spending
-                transaction_type='spent',
-                description=f"RSVP for {event_title}"
-            )
-            db.session.add(transaction)
-
+        db.session.add(CreditTransaction(user_id=self.id, amount=-amount_needed,
+            transaction_type='spent', description=f"RSVP for {event_title}"))
+        if commit:
             db.session.commit()
-            return True
         else:
-            db.session.rollback() # Should not happen if step 1 passed
-            return False
+            db.session.flush()
+        return True
 
     subscriptions = db.relationship('Subscription', back_populates='user', lazy=True, cascade="all, delete-orphan")
 
@@ -168,6 +147,7 @@ class Event(db.Model):
     cancellation_reason = db.Column(db.String(255), nullable=True)  # New field for cancellation reason
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     ticket_price = db.Column(db.Float, nullable=False, default=10.0)
+    free_spots = db.Column(db.Integer, nullable=False, default=0, server_default='0')
     allow_guests = db.Column(db.Boolean, default=False)
     guest_limit = db.Column(db.Integer, nullable=True)
     attendees = db.relationship('EventAttendee', back_populates='event', cascade="all, delete-orphan")
@@ -193,12 +173,58 @@ class EventAttendee(db.Model):
 
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     guest_count = db.Column(db.Integer, nullable=False, default=0)
+    free_spots = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+    promotion_compensated = db.Column(db.Boolean, nullable=False, default=False, server_default='0')
+
+    @property
+    def creditable_spots(self):
+        return max(0, 1 + (self.guest_count or 0) - (self.free_spots or 0)
+                   - int(bool(self.promotion_compensated)))
 
     user = db.relationship('User', backref='attendances')
     event = db.relationship('Event', back_populates='attendees')
 
 
 # Add to models.py
+
+class EventCheckout(db.Model):
+    """Server-side pricing snapshot, checked again before capturing payment."""
+    id = db.Column(db.String(255), primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.String(36), nullable=True)
+    rsvp_id = db.Column(db.Integer, nullable=True)
+    quantity = db.Column(db.Integer, nullable=False)
+    free_spots = db.Column(db.Integer, nullable=False)
+    credits = db.Column(db.Integer, nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    completed = db.Column(db.Boolean, nullable=False, default=False)
+    email = db.Column(db.String(150), nullable=True)
+
+
+class EventPromotionClaim(db.Model):
+    """One primary-attendee promotion per event/email, even after cancellation."""
+    __table_args__ = (db.UniqueConstraint('event_id', 'email', name='uq_event_promotion_email'),)
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id', ondelete='CASCADE'), nullable=False)
+    email = db.Column(db.String(150), nullable=False)
+    user_id = db.Column(db.String(36), nullable=True)
+    benefit = db.Column(db.String(20), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+
+class EventPromotionEmail(db.Model):
+    """Notification queued in the same transaction as its promotional credit."""
+    id = db.Column(db.Integer, primary_key=True)
+    grant_id = db.Column(db.Integer, db.ForeignKey('credit_grant.id'), nullable=False, unique=True)
+    event_id = db.Column(db.Integer, nullable=False, index=True)
+    recipient = db.Column(db.String(150), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    sent_at = db.Column(db.DateTime, nullable=True)
+    attempts = db.Column(db.Integer, nullable=False, default=0)
+    last_error = db.Column(db.String(1024), nullable=True)
+
 
 class Subscription(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -287,3 +313,241 @@ class PayPalWebhookEvent(db.Model):
     notes = db.Column(db.String(255), nullable=True)
 
     received_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+
+class MerchProduct(db.Model):
+    __tablename__ = 'merch_products'
+
+    id = db.Column(db.String(80), primary_key=True)
+    name = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=False, default='')
+    price = db.Column(db.Numeric(10, 2), nullable=False)
+    image = db.Column(db.String(255), nullable=False)
+    detail_image = db.Column(db.String(255), nullable=False)
+    detail_position = db.Column(db.String(30), nullable=False, default='center')
+    active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
+
+    variants = db.relationship('MerchVariant', back_populates='product',
+                               order_by='MerchVariant.id', lazy=True)
+    gallery_images = db.relationship(
+        'MerchProductImage', back_populates='product',
+        order_by=lambda: (MerchProductImage.sort_order, MerchProductImage.id),
+        cascade='all, delete-orphan', lazy=True)
+
+
+class MerchProductImage(db.Model):
+    __tablename__ = 'merch_product_images'
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.String(80), db.ForeignKey('merch_products.id'),
+                           nullable=False, index=True)
+    image = db.Column(db.String(255), nullable=False)
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+    product = db.relationship('MerchProduct', back_populates='gallery_images')
+
+
+class MerchVariant(db.Model):
+    __tablename__ = 'merch_variants'
+    __table_args__ = (
+        db.UniqueConstraint('product_id', 'size', 'color',
+                            name='uq_merch_variant_option'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.String(80), db.ForeignKey('merch_products.id'),
+                           nullable=False, index=True)
+    size = db.Column(db.String(20), nullable=False)
+    color = db.Column(db.String(40), nullable=False)
+    image = db.Column(db.String(255), nullable=True)
+    stock_on_hand = db.Column(db.Integer, nullable=False, default=0)
+    stock_reserved = db.Column(db.Integer, nullable=False, default=0)
+    active = db.Column(db.Boolean, nullable=False, default=True)
+
+    product = db.relationship('MerchProduct', back_populates='variants')
+
+    @property
+    def available(self):
+        return max(0, self.stock_on_hand - self.stock_reserved)
+
+
+class MerchOrder(db.Model):
+    __tablename__ = 'merch_orders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_number = db.Column(
+        db.String(40),
+        unique=True,
+        nullable=False
+    )
+
+    user_id = db.Column(
+        db.String(36),
+        db.ForeignKey('user.id'),
+        nullable=True
+    )
+
+    customer_name = db.Column(
+        db.String(150),
+        nullable=False
+    )
+    customer_email = db.Column(
+        db.String(150),
+        nullable=False
+    )
+    customer_phone = db.Column(
+        db.String(40),
+        nullable=True
+    )
+
+    fulfillment_method = db.Column(
+        db.String(30),
+        nullable=False
+    )
+
+    shipping_name = db.Column(
+        db.String(150),
+        nullable=True
+    )
+    shipping_address_line_1 = db.Column(
+        db.String(200),
+        nullable=True
+    )
+    shipping_address_line_2 = db.Column(
+        db.String(200),
+        nullable=True
+    )
+    shipping_city = db.Column(
+        db.String(100),
+        nullable=True
+    )
+    shipping_state = db.Column(
+        db.String(50),
+        nullable=True
+    )
+    shipping_postal_code = db.Column(
+        db.String(20),
+        nullable=True
+    )
+    shipping_country = db.Column(
+        db.String(2),
+        nullable=True
+    )
+
+    subtotal = db.Column(
+        db.Numeric(10, 2),
+        nullable=False
+    )
+    shipping_amount = db.Column(
+        db.Numeric(10, 2),
+        nullable=False,
+        default=0
+    )
+    total = db.Column(
+        db.Numeric(10, 2),
+        nullable=False
+    )
+
+    currency = db.Column(
+        db.String(10),
+        nullable=False,
+        default='USD'
+    )
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default='pending'
+    )
+
+    paypal_order_id = db.Column(
+        db.String(255),
+        unique=True,
+        nullable=True
+    )
+    paypal_capture_id = db.Column(
+        db.String(255),
+        unique=True,
+        nullable=True
+    )
+    paypal_payer_email = db.Column(
+        db.String(150),
+        nullable=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+    completed_at = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    inventory_reserved = db.Column(db.Boolean, nullable=False, default=False)
+    reservation_expires_at = db.Column(db.DateTime, nullable=True)
+    cancel_token = db.Column(db.String(80), nullable=True)
+    tracking_carrier = db.Column(db.String(50), nullable=True)
+    tracking_number = db.Column(db.String(120), nullable=True)
+    shipped_at = db.Column(db.DateTime, nullable=True)
+    tracking_notified_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship(
+        'User',
+        backref='merch_orders'
+    )
+
+    items = db.relationship(
+        'MerchOrderItem',
+        back_populates='order',
+        cascade='all, delete-orphan',
+        lazy=True
+    )
+
+
+class MerchOrderItem(db.Model):
+    __tablename__ = 'merch_order_items'
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    merch_order_id = db.Column(
+        db.Integer,
+        db.ForeignKey('merch_orders.id'),
+        nullable=False
+    )
+
+    product_id = db.Column(
+        db.String(80),
+        nullable=False
+    )
+    variant_id = db.Column(db.Integer, db.ForeignKey('merch_variants.id'),
+                           nullable=True)
+    product_name = db.Column(
+        db.String(150),
+        nullable=False
+    )
+    size = db.Column(
+        db.String(20),
+        nullable=False
+    )
+    color = db.Column(db.String(40), nullable=False, default='As shown')
+    quantity = db.Column(
+        db.Integer,
+        nullable=False
+    )
+    unit_price = db.Column(
+        db.Numeric(10, 2),
+        nullable=False
+    )
+
+    order = db.relationship(
+        'MerchOrder',
+        back_populates='items'
+    )

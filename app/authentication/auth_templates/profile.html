@@ -119,6 +119,8 @@
                             <td>
                                 {% if credit.source_type == 'promo' %}
                                     <span class="badge bg-info text-dark">Promo</span>
+                                {% elif credit.source_type == 'event_promotion' %}
+                                    <span class="badge bg-info text-dark">Event promotion</span>
                                 {% elif credit.source_type == 'cancellation' %}
                                     <span class="badge bg-warning text-dark">Cancellation</span>
                                 {% elif credit.source_type == 'subscription' %}

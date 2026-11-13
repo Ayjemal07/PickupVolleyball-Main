@@ -14,3 +14,5 @@ mysqlclient
 pymysql
 Flask-Mail==0.10.1
 reportlab>=3.5.0
+requests>=2.31,<3
+tzdata

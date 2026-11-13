@@ -31,6 +31,7 @@ def create_app():
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
+    from . import credit_models  # Include durable receipt tables in migrations
     migrate.init_app(app, db)
 
     # # Register Blueprints
@@ -42,4 +43,7 @@ def create_app():
     mail.init_app(app)
 
 
+    from .credit_cli import register
+    from . import subscription_maintenance  # Register retry/recovery CLI commands\
+    register(app)
     return app

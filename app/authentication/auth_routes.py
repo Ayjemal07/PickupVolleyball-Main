@@ -34,7 +34,7 @@ def send_underage_rejection_email(user_email):
     msg = Message(
         subject="Registration Rejected: Age Requirement",
         recipients=[user_email],
-        body="Thank you for your interest in Pick Up Volleyball PDX. At this time, we are only able to accept registrations from individuals who are 18 years or older. We were unable to create your account as a result of this policy. You may have a parent/legal guardian create an account and register for events, in which case they will assume liability for you. Apologies for any inconvenience, and thank you for your understanding."
+        body="Thank you for your interest in Pick Up Volleyball. At this time, we are only able to accept registrations from individuals who are 18 years or older. We were unable to create your account as a result of this policy. You may have a parent/legal guardian create an account and register for events, in which case they will assume liability for you. Apologies for any inconvenience, and thank you for your understanding."
     )
     mail.send(msg)
 
@@ -203,7 +203,7 @@ def register():
             pdf_bytes = f.read()
 
         def send_waiver_email(user_email, pdf_data, user_name, user_id):
-            admin_email = "noreply.pickupvbpdx@gmail.com"
+            admin_email = current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('MAIL_USERNAME')
             msg = Message(
                 subject=f"Waiver Confirmation for {user_name}",
                 sender=admin_email,
@@ -211,7 +211,7 @@ def register():
                 bcc=[admin_email],
                 body=(f"Hi {user_name},\n\n"
                                     f"Attached is your signed waiver and liability agreement for "
-                                    f"Pick Up Volleyball PDX. Keep this for your records.\n\n"
+                                    f"Pick Up Volleyball. Keep this for your records.\n\n"
                                     f"See you on the court!")
                     )
             msg.attach(f"waiver_{user_id}.pdf", "application/pdf", pdf_data)
@@ -331,7 +331,7 @@ def forgot_password():
             token = serializer.dumps(email, salt='password-reset-salt')
             reset_url = url_for('auth.reset_password', token=token, _external=True, _scheme='https')
             msg = Message(subject="Reset Your Password",
-                          sender="noreply.pickupvbpdx@gmail.com",
+                          sender=current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('MAIL_USERNAME'),
                           recipients=[email],
                           body=f'Click the link to reset your password: {reset_url}')
             mail.send(msg)

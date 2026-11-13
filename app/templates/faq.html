@@ -1,6 +1,6 @@
 {% if not embedded %}
     {% extends "base.html" %}
-    {% block title %}FAQ - Pick Up Volleyball PDX{% endblock %}
+    {% block title %}FAQ - Pick Up Volleyball{% endblock %}
 {% endif %}
 
 
@@ -50,7 +50,7 @@
             <h2 class="faq-question">
                 <span class="toggle-sign">+</span> Q: Where are events located?
             </h2>
-            <p class="faq-answer">A: Events are held all throughout the Portland area at various days & times!</p>
+            <p class="faq-answer">A: Events are held all throughout Southern Oregon at various days & times!</p>
         </div>
         <div class="faq-item">
             <h2 class="faq-question">
@@ -74,7 +74,14 @@
             <h2 class="faq-question">
                 <span class="toggle-sign">+</span> Q: How do I get better?
             </h2>
-            <p class="faq-answer">A: Attend our clinics, watch high-level film, ask advice from experienced players, and of course - Play! If you are interested in being coached 1:1 to learn the basics or hone specific skills, reach out to <a href="https://www.instagram.com/pickupvolleyballpdx" target="_blank" rel="noopener noreferrer">pickupvolleyballpdx</a> on instagram!</p>
+            <p class="faq-answer">A: Attend our clinics, watch high-level film, ask advice from experienced players, and of course - Play! If you are interested in being coached 1:1 to learn the basics or hone specific skills, {% if config.get('INSTAGRAM_URL') %}reach out on <a href="{{ config.INSTAGRAM_URL }}" target="_blank" rel="noopener noreferrer">Instagram</a>{% elif config.get('MAIL_USERNAME') %}<a href="mailto:{{ config.MAIL_USERNAME }}">contact us by email</a>{% else %}speak with a host at an event{% endif %}!</p>
+        </div>
+
+        <div class="faq-item">
+            <h2 class="faq-question">
+                <span class="toggle-sign">+</span> Q: I didn't find what I was looking for?
+            </h2>
+            <p class="faq-answer">A: {% if config.get('INSTAGRAM_URL') %}Send us a message on <a href="{{ config.INSTAGRAM_URL }}" target="_blank" rel="noopener noreferrer">Instagram</a>.{% elif config.get('MAIL_USERNAME') %}<a href="mailto:{{ config.MAIL_USERNAME }}">Contact us by email</a>.{% else %}Speak with a host at an event.{% endif %}</p>
         </div>
     </section>
 </div>

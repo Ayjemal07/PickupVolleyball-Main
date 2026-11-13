@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if product else 'Add' }} merch | Pick Up Volleyball{% endblock %}
+
+{% block content %}
+<section class="merch-page merch-admin-page">
+    <div class="merch-shell">
+        <div class="merch-admin-heading">
+            <div>
+                <p class="merch-eyebrow">Merch admin</p>
+                <h1>{{ 'Edit listing' if product else 'Add product' }}</h1>
+            </div>
+            <a href="{{ url_for('main.merch') }}">← Back to merch</a>
+        </div>
+
+        <form class="merch-admin-form" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="admin_token" value="{{ admin_token }}">
+            <div class="merch-admin-panel">
+                <h2>Listing</h2>
+                <div class="merch-admin-fields">
+                    <label>Name
+                        <input name="name" maxlength="150" required value="{{ product.name if product else '' }}">
+                    </label>
+                    <label>Price (USD)
+                        <input name="price" type="number" min="0.01" max="9999.99" step="0.01" required value="{{ '%.2f'|format(product.price) if product else '' }}">
+                    </label>
+                </div>
+                <label>Description
+                    <textarea name="description" maxlength="3000" rows="3">{{ product.description if product else '' }}</textarea>
+                </label>
+                <label class="merch-admin-check">
+                    <input type="checkbox" name="active" {% if not product or product.active %}checked{% endif %}>
+                    Show this product on the Merch page
+                </label>
+                <p class="merch-admin-help">Hiding a listing keeps past orders and their item details.</p>
+            </div>
+
+            <div class="merch-admin-panel">
+                <h2>Photos</h2>
+                <div class="merch-admin-fields">
+                    <label>Primary image
+                        {% if product %}<img class="merch-admin-preview" src="{{ url_for('static', filename='images/' ~ product.image) }}" alt="Current primary image">{% endif %}
+                        <input name="image" type="file" accept="image/jpeg,image/png,image/webp" {% if not product %}required{% endif %}>
+                    </label>
+                    <label>Hover image <span>(optional)</span>
+                        {% if product %}<img class="merch-admin-preview" src="{{ url_for('static', filename='images/' ~ product.detail_image) }}" alt="Current hover image">{% endif %}
+                        <input name="detail_image" type="file" accept="image/jpeg,image/png,image/webp">
+                    </label>
+                </div>
+                <p class="merch-admin-help">The primary photo appears first and the hover photo second. If you leave the hover photo blank, the second view is a close-up of the primary photo. JPEG, PNG, or WebP; up to 8 MB per image.</p>
+                <h3>Additional photos</h3>
+                {% if product and product.gallery_images %}
+                <div class="merch-admin-gallery-list">
+                    {% for image in product.gallery_images %}
+                    <div class="merch-admin-gallery-row">
+                        <img class="merch-admin-preview"
+                             src="{{ url_for('static', filename='images/' ~ image.image) }}"
+                             alt="Additional photo {{ loop.index }}">
+                        <label>Order
+                            <input type="number" name="gallery_order_{{ image.id }}"
+                                   min="1" max="1000" value="{{ image.sort_order }}">
+                        </label>
+                        <label class="merch-admin-check">
+                            <input type="checkbox" name="gallery_remove_{{ image.id }}">
+                            Remove photo
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <label>Add photos to this listing
+                    <input name="gallery_images" type="file" multiple
+                           accept="image/jpeg,image/png,image/webp">
+                </label>
+                <p class="merch-admin-help">Choose several files at once. You can keep up to 12 additional photos per listing. Save, then use the order fields to rearrange them.</p>
+            </div>
+
+            <div class="merch-admin-panel">
+                <h2>Sizes, colors &amp; stock</h2>
+                <p class="merch-admin-help">Stock on hand is the number you can ship. Units held in open PayPal checkouts are reserved and cannot be removed. To rename a size or color, hide that variant and add a new one.</p>
+                {% if product and product.variants %}
+                <div class="merch-admin-variant-list">
+                    {% for variant in product.variants %}
+                    <div class="merch-admin-variant-row">
+                        <strong>{{ variant.color }} / {{ variant.size }}</strong>
+                        <label>On hand
+                            <input type="number" name="stock_{{ variant.id }}" min="{{ variant.stock_reserved }}" max="1000000" required value="{{ variant.stock_on_hand }}">
+                        </label>
+                        <span>{{ variant.stock_reserved }} reserved · {{ variant.available }} available</span>
+                        <label>Color photo <span>(optional)</span>
+                            {% if variant.image %}<img class="merch-admin-preview" src="{{ url_for('static', filename='images/' ~ variant.image) }}" alt="{{ variant.color }} variant">{% endif %}
+                            <input type="file" name="image_{{ variant.id }}" accept="image/jpeg,image/png,image/webp">
+                        </label>
+                        <label class="merch-admin-check">
+                            <input type="checkbox" name="active_{{ variant.id }}" {% if variant.active %}checked{% endif %}>
+                            For sale
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <h3>Add variants</h3>
+                <div id="merchNewVariants">
+                    {% if not product %}
+                    <div class="merch-admin-new-variant">
+                        <label>Color <input name="new_color[]" maxlength="40" value="As shown"></label>
+                        <label>Size <input name="new_size[]" maxlength="20" placeholder="M or One Size"></label>
+                        <label>On hand <input name="new_stock[]" type="number" min="0" max="1000000" value="0"></label>
+                        <label>Color photo <input name="new_image[]" type="file" accept="image/jpeg,image/png,image/webp"></label>
+                        <button type="button" class="merch-remove-variant">Remove</button>
+                    </div>
+                    {% endif %}
+                </div>
+                <button type="button" id="merchAddVariant" class="merch-admin-secondary">Add size/color</button>
+            </div>
+
+            <button type="submit" class="merch-add-button">Save listing</button>
+        </form>
+    </div>
+</section>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='js/merch_admin.js') }}"></script>
+{% endblock %}

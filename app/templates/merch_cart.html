@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}
+Your Cart | Pick Up Volleyball
+{% endblock %}
+
+{% block content %}
+<section
+    class="merch-page merch-cart-page"
+    data-shipping-rate="{{ shipping_rate }}"
+>
+    <div class="merch-shell">
+        <header class="merch-cart-page-header">
+            <div>
+                <p class="merch-eyebrow">
+                    Pickup Volleyball
+                </p>
+
+                <h1>Your cart</h1>
+            </div>
+
+            <a
+                href="{{ url_for('main.merch') }}"
+                class="merch-continue-shopping"
+            >
+                <i
+                    class="fa-solid fa-arrow-left"
+                    aria-hidden="true"
+                ></i>
+
+                Continue shopping
+            </a>
+        </header>
+
+        <div
+            id="merchStatus"
+            class="merch-status"
+            role="status"
+            aria-live="polite"
+        ></div>
+
+        <div
+            id="merchCartEmptyPage"
+            class="merch-empty-page"
+            hidden
+        >
+            <i
+                class="fa-solid fa-bag-shopping"
+                aria-hidden="true"
+            ></i>
+
+            <h2>Your cart is empty</h2>
+
+            <p>Add something from the merchandise page.</p>
+
+            <a
+                href="{{ url_for('main.merch') }}"
+                class="merch-add-button"
+            >
+                Browse merchandise
+            </a>
+        </div>
+
+        <div
+            id="merchCheckoutLayout"
+            class="merch-checkout-layout"
+        >
+            <section class="merch-cart-panel">
+                <h2>Order items</h2>
+
+                <div
+                    id="merchCartItems"
+                    class="merch-cart-items"
+                ></div>
+            </section>
+
+            <aside class="merch-checkout-panel">
+                <form
+                    id="merchCheckoutForm"
+                    class="merch-checkout-form"
+                    novalidate
+                >
+                    <section class="merch-form-section">
+                        <h2>Contact information</h2>
+
+                        <label>
+                            Full name
+
+                            <input
+                                id="merchCustomerName"
+                                type="text"
+                                maxlength="150"
+                                autocomplete="name"
+                                required
+                            >
+                        </label>
+
+                        <label>
+                            Email
+
+                            <input
+                                id="merchCustomerEmail"
+                                type="email"
+                                maxlength="150"
+                                autocomplete="email"
+                                required
+                            >
+                        </label>
+
+                        <label>
+                            Phone <span>(optional)</span>
+
+                            <input
+                                id="merchCustomerPhone"
+                                type="tel"
+                                maxlength="40"
+                                autocomplete="tel"
+                            >
+                        </label>
+                    </section>
+
+                    <section
+                        id="merchShippingFields"
+                        class="merch-form-section"
+                    >
+                        <h2>Shipping address</h2>
+
+                        <label>
+                            Recipient name
+
+                            <input
+                                id="merchShippingName"
+                                type="text"
+                                maxlength="150"
+                                autocomplete="shipping name"
+                                required
+                            >
+                        </label>
+
+                        <label>
+                            Street address
+
+                            <input
+                                id="merchAddressLine1"
+                                type="text"
+                                maxlength="200"
+                                autocomplete="shipping address-line1"
+                                required
+                            >
+                        </label>
+
+                        <label>
+                            Apartment, suite, etc.
+                            <span>(optional)</span>
+
+                            <input
+                                id="merchAddressLine2"
+                                type="text"
+                                maxlength="200"
+                                autocomplete="shipping address-line2"
+                            >
+                        </label>
+
+                        <div class="merch-address-row">
+                            <label>
+                                City
+
+                                <input
+                                    id="merchCity"
+                                    type="text"
+                                    maxlength="100"
+                                    autocomplete="shipping address-level2"
+                                    required
+                                >
+                            </label>
+
+                            <label>
+                                State
+
+                                <input
+                                    id="merchState"
+                                    type="text"
+                                    maxlength="50"
+                                    placeholder="OR"
+                                    autocomplete="shipping address-level1"
+                                    required
+                                >
+                            </label>
+
+                            <label>
+                                ZIP code
+
+                                <input
+                                    id="merchPostalCode"
+                                    type="text"
+                                    maxlength="20"
+                                    autocomplete="shipping postal-code"
+                                    required
+                                >
+                            </label>
+                        </div>
+
+                        <label>
+                            Country
+
+                            <select
+                                id="merchCountry"
+                                autocomplete="shipping country"
+                            >
+                                <option value="US">
+                                    United States
+                                </option>
+                            </select>
+                        </label>
+                    </section>
+                </form>
+
+                <section class="merch-order-summary">
+                    <h2>Order summary</h2>
+
+                    <div class="merch-summary-row">
+                        <span>Subtotal</span>
+                        <span id="merchSubtotal">$0.00</span>
+                    </div>
+
+                    <div class="merch-summary-row">
+                        <span>Shipping</span>
+                        <span id="merchShippingAmount">
+                            ${{ shipping_rate }}
+                        </span>
+                    </div>
+
+                    <div class="merch-summary-row merch-total-row">
+                        <strong>Total</strong>
+                        <strong id="merchTotal">$0.00</strong>
+                    </div>
+                </section>
+
+                <div id="merchPaypalButtons"></div>
+
+                <p class="merch-payment-note">
+                    Your payment is securely processed
+                    through PayPal.
+                </p>
+            </aside>
+        </div>
+
+        <section
+            id="merchSuccess"
+            class="merch-success"
+            hidden
+        >
+            <i
+                class="fa-solid fa-circle-check"
+                aria-hidden="true"
+            ></i>
+
+            <h2>Order confirmed!</h2>
+
+            <p>
+                Your confirmation number is
+                <strong id="merchOrderNumber"></strong>.
+            </p>
+
+            <p id="merchSuccessFulfillment"></p>
+
+            <a
+                href="{{ url_for('main.merch') }}"
+                class="merch-add-button"
+            >
+                Return to merchandise
+            </a>
+        </section>
+    </div>
+</section>
+{% endblock %}
+
+{% block page_scripts %}
+{% if paypal_client_id %}
+<script
+    src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD&intent=capture"
+></script>
+{% endif %}
+
+<script
+    src="{{ url_for('static', filename='js/merch_cart.js') }}"
+></script>
+{% endblock %}

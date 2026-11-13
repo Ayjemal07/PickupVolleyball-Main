@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {% extends "base.html" %}
-{% block title %}Volley Passes - Pick Up Volleyball PDX{% endblock %}
+{% block title %}Volley Passes - Pick Up Volleyball{% endblock %}
 
 {% block content %}
 <style>
@@ -65,6 +65,30 @@
     .plan-actions .btn {
         margin: 5px;
     }
+    .checkout-progress {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 28px;
+        margin-top: 12px;
+        color: #333;
+    }
+    .checkout-spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid #d7e3f2;
+        border-top-color: #0758b7;
+        border-radius: 50%;
+        animation: checkout-spin .8s linear infinite;
+        flex: 0 0 auto;
+    }
+    @keyframes checkout-spin { to { transform: rotate(360deg); } }
+    #checkout-complete-button { margin-top: 14px; }
+    #paypal-button-container.checkout-confirming {
+        opacity: .55;
+        pointer-events: none;
+    }
 
     @media (max-width: 768px) {
         .subscription-plans {
@@ -96,6 +120,10 @@
         <h1>Join the Fun!</h1>
         <p class="intro-text">Volley Passes are the best bang for your buck. More options to come!</p>
 
+        {% if current_user.is_authenticated %}
+            <div id="pass-status-message" class="alert alert-info" role="status">Checking your pass status…</div>
+            <button type="button" id="refresh-pass-status" class="btn btn-sm btn-outline-primary">Refresh pass status</button>
+        {% endif %}
         {% if current_user.is_authenticated and subscriptions %}
             <div class="active-subscriptions-summary mb-4">
                 <h3 style="text-align: center;">Your Subscriptions:</h3>
@@ -111,7 +139,7 @@
                             
                             {# SUBSCRIPTION LIST ITEM - Three Column Layout #}
                             <li class="list-group-item d-flex align-items-center justify-content-start 
-                                {% if sub.status == 'active' %}bg-light border-start border-5 border-success{% endif %}">
+                                {% if sub.status in ('active', 'pending', 'suspended') %}bg-light border-start border-5 border-success{% endif %}">
                                 
                                 {# 1. FAR LEFT: TIER LABEL #}
                                 <div style="width: 100px;">
@@ -123,29 +151,27 @@
                                     <div class="d-inline-flex align-items-center">
                                         <span class="me-3">({{ sub.credits }} credits/mo)</span>
                                         
-                                        {% if sub.status == 'active' %}
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check-circle"></i> ACTIVE
-                                            </span>
-                                        {% endif %}
+                                        <span class="badge {{ 'bg-success' if sub.status == 'active' else 'bg-secondary' }}">{{ sub.status|upper }}</span>
                                     </div>
                                     
                                     <br>
                                     <small class="text-muted">
-                                        {% if sub.status == 'active' %}
-                                            Renews on: {{ sub.renews_on.strftime('%B %d, %Y') if sub.renews_on else '—' }}
+                                        {% if sub.paid_through %}
+                                            Paid-credit expiry: {{ sub.paid_through.strftime('%B %d, %Y') }}
+                                        {% elif sub.status == 'pending' %}
+                                            Continue your PayPal checkout using the plan button below.
                                         {% else %}
-                                            <span class="text-danger">Credits Expire on: {{ sub.expires_on.strftime('%B %d, %Y') if sub.expires_on else '—'}}</span>
+                                            Credits are available only after a completed payment.
                                         {% endif %}
                                     </small>
                                 </div>
                                 
                                 {# 3. FAR RIGHT: ACTION BUTTON/BADGE #}
                                 <div>
-                                    {% if sub.status == 'active' %}
+                                    {% if sub.status in ('active', 'pending', 'suspended') %}
                                     <button class="btn btn-sm btn-outline-danger cancel-subscription-btn" data-sub-id="{{sub.paypal_subscription_id}}" data-tier="{{ sub.tier }}">Cancel</button>
                                     {% else %}
-                                    <span class="badge bg-secondary">Canceled</span>
+                                    <span class="badge bg-secondary">{{ sub.status|capitalize }}</span>
                                     {% endif %}
                                 </div>
                             </li>
@@ -164,8 +190,8 @@
             {% if not has_tier_1 %}
             <div class="plan">
                 <h2>Tier 1</h2>
-                <p class="price">$40</p>
-                <p class="details">4 events ($10/ea.)</p>
+                <p class="price">$35</p>
+                <p class="details">4 events ($8.75/ea.)</p>
                 <div class="plan-actions">
                     <button class="btn btn-success btn-signup" data-tier="1">Sign Up</button>
                 </div>
@@ -175,8 +201,8 @@
             {% if not has_tier_2 %}
             <div class="plan">
                 <h2>Tier 2</h2>
-                <p class="price">$75</p>
-                <p class="details">8 events ($9.38/ea.)</p>
+                <p class="price">$60</p>
+                <p class="details">8 events ($7.50/ea.)</p>
                 <div class="plan-actions">
                     {% if has_tier_1 %}
                         {# User has Tier 1, so show Upgrade and Add options for Tier 2 #}
@@ -209,7 +235,13 @@
         </h2>
         <p id="modalDescription"></p>
         <div id="paypal-button-container"></div>
-        <div id="subscription-message"></div>
+        <div class="checkout-progress" id="subscription-message" role="status" aria-live="polite">
+            <span class="checkout-spinner" id="checkout-spinner" hidden aria-hidden="true"></span>
+            <span id="checkout-message-text"></span>
+        </div>
+        <button class="btn btn-primary" id="checkout-complete-button" type="button" hidden>
+            Show updated pass status
+        </button>
     </div>
 </div>
 
@@ -220,7 +252,7 @@
         <h2 id="cancelModalTitle">Confirm Cancellation</h2>
         <p>
             Are you sure you want to cancel your subscription? 
-            <strong class="text-danger">Your event credits will remain available until the end of the current billing period, but you will not be charged again.</strong>
+            <strong class="text-danger">Your remaining event credits keep their existing expiry dates. Once PayPal confirms cancellation, this pass will not renew.</strong>
         </p>
         
         <div class="d-flex justify-content-center gap-2 mt-3">
@@ -239,10 +271,58 @@
         let selectedSubToCancel = null; // <-- MUST BE HERE, near the top of your script block
 
         document.addEventListener('DOMContentLoaded', function () {
+            const initialPassState = {{ (subscription_state|default({'subscriptions': [], 'event_credits': 0}, true))|tojson }};
+            const passNotice = document.getElementById('pass-status-message');
+            const refreshButton = document.getElementById('refresh-pass-status');
+            function signature(rows) {
+                return (rows || []).map(row => `${row.id}|${row.tier}|${row.status}`).sort().join(',');
+            }
+            async function refreshPasses() {
+                if (!isUserAuthenticated) return;
+                refreshButton.disabled = true;
+                passNotice.textContent = 'Checking your pass status…';
+                const slowCheckTimer = setTimeout(() => {
+                    if (refreshButton.disabled) {
+                        passNotice.textContent = 'PayPal is taking longer than usual to respond. The saved pass status and balance shown below are still available. Please do not subscribe again because of this delay.';
+                    }
+                }, 10000);
+                try {
+                    const response = await fetch('/api/user/subscription/refresh', {method: 'POST'});
+                    const contentType = response.headers?.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        throw new Error(response.status === 404
+                            ? 'Pass status refresh route is missing from app/views.py. Add the refresh route and restart the site.'
+                            : 'The pass status response was not JSON. Please restart the site and try again.');
+                    }
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || 'Unable to check PayPal right now.');
+                    if (signature(result.subscriptions) !== signature(initialPassState.subscriptions) ||
+                        Number(result.event_credits) !== Number(initialPassState.event_credits)) {
+                        location.reload();
+                        return;
+                    }
+                    passNotice.textContent = !result.verified ? 'Some pass details could not be verified. Please try again shortly.' :
+                        result.upgrade_pending ? 'Tier 2 is ready. We are retrying the cancellation of Tier 1 renewals.' :
+                        result.payment_review_required ? 'A payment needs review. Please contact support before purchasing again.' :
+                        result.payment_history_pending ? 'PayPal shows a recent payment, but its transaction is not available for credit verification yet. Please do not subscribe again; contact support if the credits do not appear shortly.' :
+                        result.pending_subscription ? 'A checkout is waiting for PayPal approval or payment. Use the same plan button below to continue.' :
+                        'Your pass status is up to date. Available credits: ' + result.event_credits;
+                } catch (error) {
+                    passNotice.textContent = error.message;
+                } finally {
+                    clearTimeout(slowCheckTimer);
+                    refreshButton.disabled = false;
+                }
+            }
+            if (refreshButton) refreshButton.addEventListener('click', refreshPasses);
+            refreshPasses();
         // Modal Elements
             const subModal = document.getElementById('subscriptionModal');
             const closeSubModal = document.getElementById('closeSubscriptionModal');
             const messageContainer = document.getElementById('subscription-message');
+            const checkoutMessageText = document.getElementById('checkout-message-text');
+            const checkoutSpinner = document.getElementById('checkout-spinner');
+            const checkoutCompleteButton = document.getElementById('checkout-complete-button');
             
             // New modal elements for dynamic content
             const modalTitle = document.getElementById('modalTitle');
@@ -260,20 +340,33 @@
             let selectedTier = null;
             let actionType = null;
             let isPayPalRendered = false;
+            let isConfirmingPayment = false;
+
+            function setCheckoutMessage(text, busy = false) {
+                checkoutMessageText.textContent = text;
+                checkoutSpinner.hidden = !busy;
+                isConfirmingPayment = busy;
+                paypalButtonContainer.classList.toggle('checkout-confirming', busy);
+                closeSubModal.setAttribute('aria-disabled', busy ? 'true' : 'false');
+                closeSubModal.style.pointerEvents = busy ? 'none' : '';
+                closeSubModal.style.opacity = busy ? '.35' : '';
+            }
+
+            checkoutCompleteButton.addEventListener('click', () => location.reload());
 
             // --- Define the messages for each action ---
             const messages = {
                 'signup_1': {
                     title: 'Confirm Subscription for Tier 1',
-                    description: 'You are signing up for the **Tier 1** monthly subscription for **$40**. This plan provides **4 event credits** per month and automatically renews monthly.'
+                    description: 'You are signing up for the Tier 1 monthly subscription for $35. This plan provides 4 event credits per month and automatically renews monthly.'
                 },
                 'signup_2': {
                     title: 'Confirm Subscription for Tier 2',
-                    description: 'You are signing up for the **Tier 2** monthly subscription for **$75**. This plan provides **8 event credits** per month and automatically renews monthly.'
+                    description: 'You are signing up for the Tier 2 monthly subscription for $60. This plan provides 8 event credits per month and automatically renews monthly.'
                 },
                 'upgrade': {
                     title: 'Confirm Subscription Upgrade',
-                    description: 'You are upgrading your subscription to Tier 2. This will charge you the Tier 2 price, cancel your current Tier 1 subscription at the end of its billing cycle, and add 8 event credits to your balance.'
+                    description: 'Approve the $60 Tier 2 monthly pass in PayPal. After we verify your payment, you receive 8 credits and we cancel future Tier 1 renewals automatically. Your remaining unexpired Tier 1 credits stay available.'
                 },
                 'add': {
                     title: 'Confirm Additional Subscription',
@@ -307,13 +400,13 @@
                         }
                         return; 
                     }
-                    selectedTier = e.target.getAttribute('data-tier');
-                    const isUpgradeOrAdd = e.target.classList.contains('btn-upgrade') || e.target.classList.contains('btn-add');
+                    selectedTier = e.currentTarget.getAttribute('data-tier');
+                    const isUpgradeOrAdd = e.currentTarget.classList.contains('btn-upgrade') || e.currentTarget.classList.contains('btn-add');
 
 
                     // Set the correct modal content based on the action
                     if (isUpgradeOrAdd) {
-                        actionType = e.target.classList.contains('btn-upgrade') ? 'upgrade' : 'add';
+                        actionType = e.currentTarget.classList.contains('btn-upgrade') ? 'upgrade' : 'add';
                         modalTitle.classList.add('text-primary');
                         modalDescription.classList.add('fw-bold');
                         modalIcon.style.display = 'inline-block';
@@ -332,7 +425,9 @@
                     const paypalPlanId = selectedTier === '1' ? '{{ paypal_plan_id_tier1 }}' : '{{ paypal_plan_id_tier2 }}';
                     
                     subModal.style.display = 'block';
-                    messageContainer.innerHTML = '';
+                    setCheckoutMessage('');
+                    checkoutCompleteButton.hidden = true;
+                    paypalButtonContainer.classList.remove('checkout-confirming');
                     
                     // Re-render PayPal buttons with the correct plan ID
                     renderPayPalButtons(paypalPlanId);
@@ -354,6 +449,7 @@
             
             // --- Modal Closing Logic ---
             closeSubModal.onclick = () => {
+                if (isConfirmingPayment) return;
                 subModal.style.display = 'none';
                 if (paypalButtonContainer) {
                     paypalButtonContainer.innerHTML = ''; // Clear PayPal buttons
@@ -374,6 +470,7 @@
 
             window.onclick = (event) => {
                 if (event.target == subModal) {
+                    if (isConfirmingPayment) return;
                     subModal.style.display = 'none';
                     if (paypalButtonContainer) {
                         paypalButtonContainer.innerHTML = ''; // Clear PayPal buttons
@@ -432,25 +529,70 @@
                         }).then(details => {
                             return details.id;
                         }).catch(error => {
-                            messageContainer.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                            messageContainer.textContent = error.message;
                             throw error;
                         });
                     },
-                    onApprove: function(data, actions) {
-                        messageContainer.innerHTML = `<p style="color: green;">Finalizing... Please wait.</p>`;
-                        fetch('/api/paypal/confirm-subscription', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ subscription_id: data.subscriptionID })
-                        })
-                        .then(res => res.json())
-                        .then(result => {
-                            if (result.success) {
-                                window.location.href = "{{ url_for('main.events') }}";
-                            } else {
-                                messageContainer.innerHTML = `<p style="color: red;">Error: ${result.error}. Please contact support.</p>`;
+                    onApprove: async function(data) {
+                        // One request at a time; stop polling after a bounded wait.
+                        // The webhook and maintenance worker continue if this tab closes.
+                        for (let attempt = 0; attempt < 8; attempt++) {
+                            setCheckoutMessage(
+                                attempt === 0
+                                    ? 'PayPal approved. Verifying your payment and credits… Please keep this window open; do not pay again.'
+                                    : `PayPal is taking longer than usual. Still verifying (check ${attempt + 1} of 8)… Please do not pay again.`,
+                                true
+                            );
+                            try {
+                                const response = await fetch('/api/paypal/confirm-subscription', {
+                                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({subscription_id: data.subscriptionID})
+                                });
+                                const result = await response.json();
+                                if (response.status === 409) {
+                                    setCheckoutMessage(result.error || 'This checkout needs support review. Please do not purchase again.');
+                                    return;
+                                }
+                                if (response.ok && result.success && result.payment_confirmed) {
+                                    const balance = result.event_credits;
+                                    const balanceText = Number.isFinite(Number(balance))
+                                        ? ` Your available balance is now ${balance} credits.` : '';
+                                    paypalButtonContainer.innerHTML = '';
+                                    checkoutCompleteButton.hidden = false;
+                                    if (result.upgrade_pending) {
+                                        setCheckoutMessage(`Payment confirmed. Tier ${selectedTier} credits are available.${balanceText} We are still retrying cancellation of future Tier 1 renewals.`, false);
+                                        return;
+                                    }
+                                    setCheckoutMessage(`Payment confirmed. Your Tier ${selectedTier} pass and credits are active.${balanceText} Select “Show updated pass status” to view them.`, false);
+                                    return;
+                                }
+                                if (response.ok && result.payment_history_pending) {
+                                    setCheckoutMessage('PayPal approved your pass. We are waiting for PayPal to publish the payment record before adding credits. This usually takes a short time; please do not pay again.', true);
+                                }
+                                if (response.ok && result.payment_review_required) {
+                                    setCheckoutMessage('Payment received, but the credit record needs review. Please contact support before subscribing again.');
+                                    return;
+                                }
+                                if (response.ok && !result.pending) {
+                                    setCheckoutMessage('This checkout is no longer active. Refresh your pass status before trying again.');
+                                    return;
+                                }
+                                if (!response.ok && ![429, 500, 502, 503, 504].includes(response.status)) {
+                                    setCheckoutMessage(result.error || 'We could not verify this checkout. Refresh your pass status before trying again.');
+                                    return;
+                                }
+                            } catch (error) {
+                                // A network interruption does not mean a second purchase is needed.
                             }
-                        });
+                            if (attempt < 7) await new Promise(resolve => setTimeout(resolve, Math.min(3000 * (attempt + 1), 10000)));
+                        }
+                        setCheckoutMessage('PayPal is still confirming the payment. Verified credits will appear automatically. Refresh your pass status shortly; do not purchase again.');
+                    },
+                    onCancel: function() {
+                        setCheckoutMessage('Checkout paused. Click PayPal again to continue the same checkout.');
+                    },
+                    onError: function() {
+                        if (!checkoutMessageText.textContent) setCheckoutMessage('PayPal could not finish this request. Please try again; your saved checkout will be reused.');
                     }
                 }).render('#paypal-button-container');
             }

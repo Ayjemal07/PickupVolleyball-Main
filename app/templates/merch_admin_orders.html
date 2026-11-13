@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Merch orders | Pick Up Volleyball{% endblock %}
+
+{% block content %}
+<section class="merch-page merch-admin-page">
+    <div class="merch-shell">
+        <div class="merch-admin-heading">
+            <div>
+                <p class="merch-eyebrow">Merch admin</p>
+                <h1>Orders &amp; tracking</h1>
+            </div>
+            <a href="{{ url_for('main.merch') }}">← Back to merch</a>
+        </div>
+
+        {% if not orders %}<p>No orders on this page.</p>{% endif %}
+        {% for order in orders %}
+        <article class="merch-admin-panel merch-admin-order">
+            <div class="merch-admin-order-heading">
+                <div>
+                    <h2>{{ order.order_number }}</h2>
+                    <p>{{ order.created_at.strftime('%b %d, %Y %I:%M %p') }} · {{ order.customer_name }} · <a href="mailto:{{ order.customer_email }}">{{ order.customer_email }}</a></p>
+                </div>
+                <strong>{{ order.status|capitalize }} · ${{ '%.2f'|format(order.total) }}</strong>
+            </div>
+
+            <div class="merch-admin-order-grid">
+                <div>
+                    <h3>Items</h3>
+                    <ul>
+                        {% for item in order.items %}
+                        <li>{{ item.quantity }} × {{ item.product_name }} — {{ item.color }} / {{ item.size }}</li>
+                        {% endfor %}
+                    </ul>
+                    <p>Subtotal ${{ '%.2f'|format(order.subtotal) }} · Shipping ${{ '%.2f'|format(order.shipping_amount) }}</p>
+                    {% if order.paypal_capture_id %}<p>PayPal capture: <code>{{ order.paypal_capture_id }}</code></p>{% endif %}
+                </div>
+                <div>
+                    <h3>Ship to</h3>
+                    {% if order.shipping_address_line_1 %}
+                    <address>
+                        {{ order.shipping_name }}<br>
+                        {{ order.shipping_address_line_1 }}<br>
+                        {% if order.shipping_address_line_2 %}{{ order.shipping_address_line_2 }}<br>{% endif %}
+                        {{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_postal_code }}<br>
+                        {{ order.shipping_country }}
+                    </address>
+                    {% else %}<p>Legacy pickup order</p>{% endif %}
+                </div>
+            </div>
+
+            {% if order.status == 'completed' and order.fulfillment_method == 'shipping' %}
+            <form class="merch-admin-tracking" method="post" action="{{ url_for('main.merch_admin_tracking', order_id=order.id) }}">
+                <input type="hidden" name="admin_token" value="{{ admin_token }}">
+                <label>Carrier
+                    <select name="carrier" required>
+                        <option value="">Select carrier</option>
+                        {% for carrier in ['USPS', 'UPS', 'FedEx', 'Other'] %}
+                        <option value="{{ carrier }}" {% if order.tracking_carrier == carrier %}selected{% endif %}>{{ carrier }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Tracking number
+                    <input name="tracking_number" maxlength="120" required value="{{ order.tracking_number or '' }}">
+                </label>
+                <label class="merch-admin-check">
+                    <input type="checkbox" name="notify_customer">
+                    Email customer now
+                </label>
+                <button type="submit" class="merch-admin-secondary">Save tracking</button>
+            </form>
+            {% if order.shipped_at %}
+            <p class="merch-admin-help">
+                Marked shipped {{ order.shipped_at.strftime('%b %d, %Y') }}.
+                {% if tracking_url(order) %}<a href="{{ tracking_url(order) }}" target="_blank" rel="noopener noreferrer">Open carrier tracking</a>{% endif %}
+                {% if order.tracking_notified_at %}Customer emailed {{ order.tracking_notified_at.strftime('%b %d, %Y') }}.{% else %}Customer has not been emailed from this page.{% endif %}
+            </p>
+            {% endif %}
+            {% elif order.status == 'pending' %}
+            <p class="merch-admin-help">Awaiting PayPal payment. Stock is reserved until {{ order.reservation_expires_at.strftime('%b %d, %Y %I:%M %p') if order.reservation_expires_at else 'checkout completes' }}.</p>
+            {% elif order.status == 'capturing' %}
+            <p class="merch-admin-help">Payment confirmation needs attention. Check PayPal order <code>{{ order.paypal_order_id }}</code> before retrying. Stock remains reserved until this is resolved.</p>
+            <form method="post" action="{{ url_for('main.merch_admin_retry_capture', order_id=order.id) }}">
+                <input type="hidden" name="admin_token" value="{{ admin_token }}">
+                <button type="submit" class="merch-admin-secondary">Retry PayPal confirmation</button>
+            </form>
+            {% endif %}
+        </article>
+        {% endfor %}
+
+        {% if pagination.pages > 1 %}
+        <nav class="merch-admin-pagination" aria-label="Order pages">
+            {% if pagination.has_prev %}<a href="{{ url_for('main.merch_admin_orders', page=pagination.prev_num) }}">← Newer</a>{% endif %}
+            <span>Page {{ pagination.page }} of {{ pagination.pages }}</span>
+            {% if pagination.has_next %}<a href="{{ url_for('main.merch_admin_orders', page=pagination.next_num) }}">Older →</a>{% endif %}
+        </nav>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

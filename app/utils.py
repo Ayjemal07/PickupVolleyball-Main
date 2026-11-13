@@ -9,9 +9,12 @@ import io
 from datetime import date, timedelta
 from .models import db, CreditGrant
 
-def add_user_credit(user, amount, source_type, description, days_valid=30):
+def add_user_credit(user, amount, source_type, description, days_valid=30, *, commit=True):
     """Creates a new credit record in the ledger."""
-    expiry = date.today() + timedelta(days=days_valid)
+    if not isinstance(amount, int) or isinstance(amount, bool) or amount <= 0:
+        raise ValueError("Credit amount must be a positive integer")
+    from .subscription_credits import credit_day
+    expiry = credit_day() + timedelta(days=days_valid)
     grant = CreditGrant(
         user_id=user.id,
         balance=amount,
@@ -20,31 +23,15 @@ def add_user_credit(user, amount, source_type, description, days_valid=30):
         expiry_date=expiry
     )
     db.session.add(grant)
-    db.session.commit()
+    if commit:
+        db.session.commit()
+    else:
+        db.session.flush()
+    return grant
 
 def cleanup_user_expired_credits(user):
-    """Removes expired credit grants from the database."""
-    if not user.is_authenticated:
-        return
-
-    safety_buffer = date.today() - timedelta(days=1)
-
-    expired_grants = CreditGrant.query.filter(
-        CreditGrant.user_id == user.id, 
-        CreditGrant.expiry_date < safety_buffer
-    ).all()
-
-    if expired_grants:
-        count = len(expired_grants)
-        for grant in expired_grants:
-            db.session.delete(grant)
-
-        try:
-            db.session.commit()
-            print(f"Cleaned up {count} expired credit records for {user.email}")
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error cleaning credits: {e}")
+    """Keep ledger history. Balance queries already exclude expired grants."""
+    return None
 
 # --- Detailed PDF Waiver Generation 
 def generate_detailed_waiver(user_data, signature_image, path):

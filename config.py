@@ -19,6 +19,8 @@ class Config:
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
+    INSTAGRAM_URL = os.getenv('INSTAGRAM_URL', 'https://www.instagram.com/pickupvolleyballsalem')
+    FACEBOOK_URL = os.getenv('FACEBOOK_URL', 'https://www.facebook.com/share/1KBhKKqgwp/?mibextid=wwXIfr')
 
 
     
