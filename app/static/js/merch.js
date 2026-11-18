@@ -131,9 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             select.addEventListener('change', () => {
                 const option = select.selectedOptions[0];
-                const available = Number(
-                    option?.dataset.available || 0
-                );
                 const selectedImage = option?.dataset.image || defaultImage;
                 primary.src = selectedImage;
                 const selectedDetail = option?.dataset.detailImage || defaultDetail;
@@ -147,19 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     : 'center';
                 card.dataset.productImage = selectedImage;
                 wrap.resetGallery();
-
-                const quantitySelect = card.querySelector('.merch-quantity');
-                Array.from(quantitySelect.options).forEach(option => {
-                    option.disabled = Number(option.value) > available;
-                });
-                if (Number(quantitySelect.value) > available) {
-                    quantitySelect.value = '1';
-                }
             });
         });
 
     document
-        .querySelectorAll('.merch-add-button')
+        .querySelectorAll('.merch-product-detail .merch-add-button')
         .forEach(button => {
             button.addEventListener('click', () => {
                 const card = button.closest(
@@ -170,11 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     '.merch-variant'
                 );
 
-                const quantity = Number(
-                    card.querySelector(
-                        '.merch-quantity'
-                    ).value
-                );
+                const quantity = 1;
 
                 const option = variantSelect.selectedOptions[0];
 

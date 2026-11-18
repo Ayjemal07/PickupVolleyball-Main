@@ -10,6 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import requests
+from sqlalchemy import text
 
 os.environ['DATABASE_URI'] = 'sqlite:///:memory:'
 
@@ -44,6 +45,7 @@ class MerchManagementTests(unittest.TestCase):
         self.context = self.app.app_context()
         self.context.push()
         db.create_all()
+        db.session.execute(text('PRAGMA foreign_keys=ON'))
         admin = User(first_name='Admin', last_name='User',
                      email='admin@example.com', role='admin')
         admin.id = 'admin'
@@ -139,7 +141,7 @@ class MerchManagementTests(unittest.TestCase):
         db.session.refresh(product)
         self.assertEqual(product.variants[0].stock_on_hand, 5)
         self.assertEqual(product.price, Decimal('26.99'))
-        self.assertIn(b'Pink', self.client.get('/merch').data)
+        self.assertIn(b'Pink', self.client.get('/merch/products/new-hat').data)
         self.assertIn(b'Orders &amp; tracking', self.client.get('/merch').data)
         self.assertEqual(self.client.post(
             '/merch/admin/products/new', data={'admin_token': 'wrong'}
@@ -166,7 +168,7 @@ class MerchManagementTests(unittest.TestCase):
         product = db.session.get(MerchProduct, 'test-shirt')
         self.assertEqual(len(product.gallery_images), 2)
         first, second = product.gallery_images
-        listing = self.client.get('/merch').data
+        listing = self.client.get('/merch/products/test-shirt').data
         self.assertIn(first.image.encode(), listing)
         self.assertIn(second.image.encode(), listing)
         self.assertIn(b'Show photo 4 of 4', listing)
@@ -197,7 +199,140 @@ class MerchManagementTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertIsNone(db.session.get(MerchProductImage, first.id))
-        self.assertIn(b'Show photo 3 of 3', self.client.get('/merch').data)
+        self.assertIn(b'Show photo 3 of 3',
+                      self.client.get('/merch/products/test-shirt').data)
+
+    def test_product_details_and_navigation(self):
+        self.add_product()
+        product = db.session.get(MerchProduct, 'test-shirt')
+        product.description = 'Relaxed fit.\nSize M: chest 38 inches. <script>bad()</script>'
+        db.session.commit()
+        listing = self.client.get('/merch').data
+        self.assertIn(b'/merch/products/test-shirt', listing)
+        self.assertNotIn(b'Relaxed fit', listing)
+        self.assertNotIn(b'merch-variant', listing)
+        self.assertNotIn(b'merch-quantity', listing)
+        detail = self.client.get('/merch/products/test-shirt')
+        self.assertEqual(detail.status_code, 200)
+        self.assertIn(b'Size M: chest 38 inches.', detail.data)
+        self.assertIn(b'&lt;script&gt;', detail.data)
+        self.assertIn(b'merch-variant', detail.data)
+        self.assertNotIn(b'merch-quantity', detail.data)
+        self.assertIn(b'adjust quantity in your cart', detail.data)
+        home = self.client.get('/').data
+        self.assertLess(home.index(b'id="events"'), home.index(b'id="merch"'))
+        self.assertLess(home.index(b'id="merch"'), home.index(b'id="subscriptions"'))
+        self.assertNotIn(b'id="about"', home)
+        self.assertIn(b'MerchPageIcon.png', home)
+        self.assertIn(b'>Merchandise</a>', home)
+        self.assertIn(b'>About Us</a>', home)
+        self.assertEqual(self.client.get('/merch/products/missing').status_code, 404)
+        product.active = False
+        db.session.commit()
+        self.assertEqual(self.client.get('/merch/products/test-shirt').status_code, 404)
+        self.assertNotIn(b'/merch/products/test-shirt', self.client.get('/merch').data)
+
+    def test_delete_requires_admin_and_valid_token(self):
+        self.add_product()
+        path = '/merch/admin/products/test-shirt/delete'
+        self.assertEqual(self.client.post(path).status_code, 401)
+        self.login('shopper')
+        self.assertEqual(self.client.post(path).status_code, 403)
+        self.login('admin')
+        token = self.admin_token()
+        self.assertEqual(self.client.get(path).status_code, 405)
+        for data in ({}, {'admin_token': 'wrong'}):
+            self.assertEqual(self.client.post(path, data=data).status_code, 403)
+        self.assertIsNotNone(db.session.get(MerchProduct, 'test-shirt'))
+        self.assertEqual(self.client.post(path, data={'admin_token': token}).status_code,
+                         302)
+        self.assertIsNone(db.session.get(MerchProduct, 'test-shirt'))
+
+    def test_permanent_delete_preserves_order_history(self):
+        variant_id = self.add_product()
+        product = db.session.get(MerchProduct, 'test-shirt')
+        product.active = False
+        product.gallery_images.append(MerchProductImage(image='merch/back.png'))
+        product.variants.append(MerchVariant(
+            size='L', color='Teal', stock_on_hand=1, active=False))
+        order = MerchOrder(
+            order_number='MERCH-HISTORY', customer_name='Buyer',
+            customer_email='buyer@example.com', fulfillment_method='shipping',
+            subtotal=Decimal('20.00'), shipping_amount=Decimal('7.99'),
+            total=Decimal('27.99'), currency='USD', status='completed',
+        )
+        order.items.append(views.MerchOrderItem(
+            product_id=product.id, variant_id=variant_id, product_name=product.name,
+            size='M', color='Teal', quantity=1, unit_price=product.price))
+        db.session.add(order)
+        db.session.commit()
+        order_id = order.id
+        self.login('admin')
+        response = self.client.post('/merch/admin/products/test-shirt/delete',
+                                    data={'admin_token': self.admin_token()})
+        self.assertEqual(response.status_code, 302)
+        db.session.expire_all()
+        self.assertIsNone(db.session.get(MerchProduct, 'test-shirt'))
+        self.assertEqual(MerchVariant.query.count(), 0)
+        self.assertEqual(MerchProductImage.query.count(), 0)
+        order = db.session.get(MerchOrder, order_id)
+        self.assertEqual(order.status, 'completed')
+        item = order.items[0]
+        self.assertIsNone(item.variant_id)
+        self.assertEqual((item.product_name, item.color, item.size, item.quantity,
+                          item.unit_price),
+                         ('Test Shirt', 'Teal', 'M', 1, Decimal('20.00')))
+        self.assertIn(b'Test Shirt', self.client.get('/merch/admin/orders').data)
+        self.assertEqual(self.client.get('/merch/products/test-shirt').status_code, 404)
+        self.assertEqual(self.client.post('/api/merch/quote',
+                         json=self.order_payload(variant_id)).status_code, 400)
+
+    def test_delete_waits_for_reserved_checkout(self):
+        variant_id = self.add_product()
+        variant = db.session.get(MerchVariant, variant_id)
+        variant.stock_reserved = 1
+        order = MerchOrder(
+            order_number='MERCH-RESERVED', customer_name='Buyer',
+            customer_email='buyer@example.com', fulfillment_method='shipping',
+            subtotal=Decimal('20.00'), shipping_amount=Decimal('7.99'),
+            total=Decimal('27.99'), currency='USD', status='pending',
+            inventory_reserved=True,
+            reservation_expires_at=datetime.utcnow() + timedelta(minutes=10),
+        )
+        order.items.append(views.MerchOrderItem(
+            product_id='test-shirt', variant_id=variant_id, product_name='Test Shirt',
+            size='M', color='Teal', quantity=1, unit_price=Decimal('20.00')))
+        db.session.add(order)
+        db.session.commit()
+        self.login('admin')
+        token = self.admin_token()
+        path = '/merch/admin/products/test-shirt/delete'
+        response = self.client.post(path, data={'admin_token': token})
+        self.assertTrue(response.location.endswith('/test-shirt/edit'))
+        self.assertIsNotNone(db.session.get(MerchProduct, 'test-shirt'))
+        db.session.refresh(variant)
+        self.assertEqual(variant.stock_reserved, 1)
+        order.reservation_expires_at = datetime.utcnow() - timedelta(minutes=1)
+        db.session.commit()
+        self.client.post(path, data={'admin_token': token})
+        db.session.expire_all()
+        self.assertIsNone(db.session.get(MerchProduct, 'test-shirt'))
+        self.assertEqual(db.session.get(MerchOrder, order.id).status, 'expired')
+
+    def test_cart_quantity_quotes_use_current_stock_and_price(self):
+        variant_id = self.add_product(stock=3)
+        quote = self.client.post('/api/merch/quote',
+                                 json=self.order_payload(variant_id, quantity=3))
+        self.assertEqual(quote.status_code, 200)
+        self.assertEqual(quote.json['subtotal'], '60.00')
+        self.assertEqual(quote.json['total'], '67.99')
+        self.assertEqual(quote.json['items'][0]['quantity'], 3)
+        self.assertEqual(self.client.post('/api/merch/quote',
+                         json=self.order_payload(variant_id, quantity=4)).status_code,
+                         400)
+        quote = self.client.post('/api/merch/quote',
+                                 json=self.order_payload(variant_id, quantity=1))
+        self.assertEqual(quote.json['total'], '27.99')
 
     def test_stock_reservation_capture_and_tracking(self):
         variant_id = self.add_product(stock=1)

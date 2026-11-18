@@ -25,8 +25,8 @@
                         <input name="price" type="number" min="0.01" max="9999.99" step="0.01" required value="{{ '%.2f'|format(product.price) if product else '' }}">
                     </label>
                 </div>
-                <label>Description
-                    <textarea name="description" maxlength="3000" rows="3">{{ product.description if product else '' }}</textarea>
+                <label>Description, sizing &amp; care
+                    <textarea name="description" maxlength="3000" rows="8">{{ product.description if product else '' }}</textarea>
                 </label>
                 <label class="merch-admin-check">
                     <input type="checkbox" name="active" {% if not product or product.active %}checked{% endif %}>
@@ -116,6 +116,16 @@
 
             <button type="submit" class="merch-add-button">Save listing</button>
         </form>
+        {% if product %}
+        <section class="merch-admin-panel merch-delete-panel" id="delete-listing" aria-labelledby="merchDeleteHeading">
+            <h2 id="merchDeleteHeading">Delete listing</h2>
+            <p>Permanently delete {{ product.name }} and its sizes, colors, and stock. Past orders will keep their purchased item details. This cannot be undone.</p>
+            <form method="post" action="{{ url_for('main.merch_product_delete', product_id=product.id) }}">
+                <input type="hidden" name="admin_token" value="{{ admin_token }}">
+                <button type="submit" class="merch-delete-button">Permanently delete {{ product.name }}</button>
+            </form>
+        </section>
+        {% endif %}
     </div>
 </section>
 {% endblock %}

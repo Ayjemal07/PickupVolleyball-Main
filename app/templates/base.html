@@ -58,7 +58,7 @@
                         <button class="dropdown-toggle"></button> <!-- Hamburger icon, no text -->
                         <div class="dropdown-menu">
                             <a href="{{ url_for('main.events') }}">Events</a>
-                            {# Keep Merch off the menu until explicitly launched; test via /merch. #}
+                            <a href="{{ url_for('main.merch') }}">Merchandise</a>
                             <a href="{{ url_for('main.subscriptions') }}">Volley Passes</a>
                             <a href="{{ url_for('main.about') }}">About Us</a>
                             <a href="{{ url_for('main.hosting') }}">Hosting</a>

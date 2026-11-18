@@ -656,7 +656,10 @@ def merch_tracking_url(order):
         'FedEx': f'https://www.fedex.com/fedextrack/?trknbr={number}',
     }.get(order.tracking_carrier)
 
-def serialize_merch_catalog():
+def serialize_merch_catalog(products=None):
+    if products is None:
+        products = (MerchProduct.query.filter_by(active=True)
+                    .order_by(MerchProduct.created_at, MerchProduct.id).all())
     return [
         {
             'id': product.id,
@@ -682,9 +685,7 @@ def serialize_merch_catalog():
                 for variant in product.variants if variant.active
             ],
         }
-        for product in (MerchProduct.query.filter_by(active=True)
-                        .order_by(MerchProduct.created_at,
-                                  MerchProduct.id).all())
+        for product in products
     ]
 
 
@@ -2488,6 +2489,17 @@ def merch_cart():
     )
 
 
+@main.route('/merch/products/<product_id>')
+def merch_product(product_id):
+    expire_merch_reservations()
+    product = MerchProduct.query.filter_by(id=product_id, active=True).first_or_404()
+    return render_template(
+        'merch_product.html',
+        product=serialize_merch_catalog([product])[0],
+        is_merch_admin=merch_admin(),
+    )
+
+
 @main.route('/api/merch/quote', methods=['POST'])
 def merch_quote():
     data = request.get_json(silent=True) or {}
@@ -2714,6 +2726,36 @@ def merch_product_edit(product_id):
             flash(str(exc), 'danger')
     return render_template('merch_product_edit.html', product=product,
                            admin_token=merch_admin_token())
+
+
+@main.route('/merch/admin/products/<product_id>/delete', methods=['POST'])
+@login_required
+def merch_product_delete(product_id):
+    if not merch_admin() or not valid_merch_admin_token():
+        abort(403)
+    expire_merch_reservations()
+    product = MerchProduct.query.get_or_404(product_id)
+    # Lock the same rows checkout updates before removing inventory records.
+    variants = (MerchVariant.query.filter_by(product_id=product.id)
+                .order_by(MerchVariant.id).with_for_update().all())
+    if any(variant.stock_reserved > 0 for variant in variants):
+        db.session.rollback()
+        flash('This item has stock reserved in checkout. Try again after '
+              'those checkouts finish or expire.', 'warning')
+        return redirect(url_for('main.merch_product_edit', product_id=product_id))
+
+    variant_ids = [variant.id for variant in variants]
+    if variant_ids:
+        # Orders retain their purchased name, size, color, price, and quantity.
+        MerchOrderItem.query.filter(MerchOrderItem.variant_id.in_(variant_ids)).update(
+            {MerchOrderItem.variant_id: None}, synchronize_session='fetch')
+    for variant in variants:
+        db.session.delete(variant)
+    name = product.name
+    db.session.delete(product)
+    db.session.commit()
+    flash(f'{name} was permanently deleted. Past orders have been kept.', 'success')
+    return redirect(url_for('main.merch'))
 
 
 @main.route('/merch/admin/orders')

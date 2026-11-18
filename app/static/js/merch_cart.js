@@ -173,7 +173,10 @@ document.addEventListener('DOMContentLoaded', () => {
             details.className = 'merch-cart-page-item-details';
 
             const name = document.createElement('h3');
-            name.textContent = item.name;
+            const productLink = document.createElement('a');
+            productLink.href = '/merch/products/' + encodeURIComponent(item.productId);
+            productLink.textContent = item.name;
+            name.appendChild(productLink);
 
             const meta = document.createElement('p');
             meta.textContent =
@@ -565,8 +568,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         setStatus(
             (
-                'PayPal checkout is unavailable. ' +
-                'Confirm that PAYPAL_CLIENT_ID is configured.'
+                'Payment is temporarily unavailable. ' +
+                'Please try again later.'
             ),
             'error'
         );

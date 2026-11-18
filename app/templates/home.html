@@ -29,6 +29,18 @@
             </a>
         </div>
     
+        <div class="card" id="merch">
+            <a href="{{ url_for('main.merch') }}" class="card-link">
+                <img src="{{ url_for('static', filename='images/merch/MerchPageIcon.png') }}" alt="Pick Up Volleyball apparel and accessories" class="card-image">
+                <div class="card-content">
+                    <h3>Merch</h3>
+                </div>
+                <div class="card-overlay">
+                    <span class="overlay-button">Rep your volleyball community.</span>
+                </div>
+            </a>
+        </div>
+
         <div class="card" id="subscriptions">
             <a href="{{ url_for('main.subscriptions') }}" class="card-link">
                 <img src="/static/images/VolleyPasses.jpeg" alt="Volley Passes" class="card-image">
@@ -41,17 +53,7 @@
             </a>
         </div>
 
-        <div class="card" id="about">
-            <a href="{{ url_for('main.about') }}" class="card-link">
-                <img src="/static/images/aboutus.jpeg" alt="About Us" class="card-image">
-                <div class="card-content">
-                    <h3>About Us</h3>
-                </div>
-                <div class="card-overlay">
-                    <a href="{{ url_for('main.about') }}" class="overlay-button">Learn more about our community and mission to promote volleyball.</a>
-                </div>
-            </a>
-        </div>
+
     </div>
     
     

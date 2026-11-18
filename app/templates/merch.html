@@ -36,9 +36,12 @@ Merch | Pick Up Volleyball
             <a href="{{ url_for('main.merch_admin_orders') }}">Orders &amp; tracking</a>
             <div class="merch-admin-product-links">
                 {% for item in admin_products %}
-                <a href="{{ url_for('main.merch_product_edit', product_id=item.id) }}">
-                    {{ item.name }}{% if not item.active %} (hidden){% endif %}
-                </a>
+                <div class="merch-listing-actions">
+                    <a href="{{ url_for('main.merch_product_edit', product_id=item.id) }}">
+                        {{ item.name }}{% if not item.active %} (hidden){% endif %}
+                    </a>
+                    <a class="merch-delete-link" href="{{ url_for('main.merch_product_edit', product_id=item.id) }}#delete-listing">Delete</a>
+                </div>
                 {% endfor %}
             </div>
         </section>
@@ -53,131 +56,27 @@ Merch | Pick Up Volleyball
 
         <div class="merch-product-grid">
             {% for product in products %}
-            <article
-                class="merch-product-card"
-                data-product-id="{{ product.id }}"
-                data-product-name="{{ product.name }}"
-                data-product-price="{{ product.price }}"
-                data-product-image="{{ url_for(
-                    'static',
-                    filename='images/' ~ product.image
-                ) }}"
-            >
-                {% set image_count = 2 + product.gallery_images|length %}
-                <div class="merch-image-wrap" aria-label="Photos of {{ product.name }}">
-                    <img
-                        class="merch-image-slide is-active"
-                        src="{{ url_for(
-                            'static',
-                            filename='images/' ~ product.image
-                        ) }}"
-                        alt="{{ product.name }}, photo 1 of {{ image_count }}"
-                        loading="lazy"
-                        aria-hidden="false"
-                    >
-                    <img
-                        class="merch-image-slide{% if product.detail_image == product.image %} is-zoom{% endif %}"
-                        src="{{ url_for(
-                            'static',
-                            filename='images/' ~ product.detail_image
-                        ) }}"
-                        alt="{{ product.name }}, photo 2 of {{ image_count }}"
-                        loading="lazy"
-                        style="object-position: {{ product.detail_position }}"
-                        aria-hidden="true"
-                    >
-                    {% for image in product.gallery_images %}
-                    <img class="merch-image-slide"
-                         src="{{ url_for('static', filename='images/' ~ image) }}"
-                         alt="{{ product.name }}, photo {{ loop.index + 2 }} of {{ image_count }}"
-                         loading="lazy" aria-hidden="true">
-                    {% endfor %}
-                    <button type="button" class="merch-gallery-arrow is-prev"
-                            aria-label="Previous photo of {{ product.name }}">&#10094;</button>
-                    <button type="button" class="merch-gallery-arrow is-next"
-                            aria-label="Next photo of {{ product.name }}">&#10095;</button>
-                    <div class="merch-gallery-dots" role="group"
-                         aria-label="Choose photo of {{ product.name }}">
-                        {% for index in range(image_count) %}
-                        <button type="button" class="merch-gallery-dot{% if index == 0 %} is-active{% endif %}"
-                                data-index="{{ index }}"
-                                aria-label="Show photo {{ index + 1 }} of {{ image_count }} for {{ product.name }}"
-                                aria-current="{{ 'true' if index == 0 else 'false' }}"></button>
-                        {% endfor %}
-                    </div>
-                </div>
-
+            <article class="merch-product-card">
+                <a class="merch-product-preview" href="{{ url_for('main.merch_product', product_id=product.id) }}">
+                    <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
+                         alt="{{ product.name }}" loading="lazy">
+                </a>
                 <div class="merch-product-info">
                     <div>
-                        <h2>{{ product.name }}</h2>
-
-                        <p class="merch-price">
-                            ${{ product.price }}
-                        </p>
-                        {% if product.description %}
-                        <p class="merch-description">{{ product.description }}</p>
-                        {% endif %}
+                        <h2><a href="{{ url_for('main.merch_product', product_id=product.id) }}">{{ product.name }}</a></h2>
+                        <p class="merch-price">${{ product.price }}</p>
                     </div>
-
-                    <div class="merch-product-options">
-                        <label>
-                            Color &amp; size
-
-                            <select
-                                class="merch-variant"
-                                aria-label="Color and size for {{ product.name }}"
-                            >
-                                <option value="">Select color &amp; size</option>
-                                {% for variant in product.variants %}
-                                <option
-                                    value="{{ variant.id }}"
-                                    data-size="{{ variant.size }}"
-                                    data-color="{{ variant.color }}"
-                                    data-available="{{ variant.available }}"
-                                    data-image="{{ url_for('static', filename='images/' ~ variant.image) }}"
-                                    data-detail-image="{{ url_for('static', filename='images/' ~ (variant.image if variant.image != product.image else product.detail_image)) }}"
-                                    {% if variant.available == 0 %}disabled{% endif %}
-                                >
-                                    {{ variant.color }} · {{ variant.size }}
-                                    {% if variant.available == 0 %}— sold out{% else %}— {{ variant.available }} left{% endif %}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </label>
-
-                        <label>
-                            Qty
-
-                            <select
-                                class="merch-quantity"
-                                aria-label="Quantity for {{ product.name }}"
-                            >
-                                {% for quantity in range(1, 11) %}
-                                <option value="{{ quantity }}">
-                                    {{ quantity }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </label>
-                    </div>
-
-                    <button
-                        type="button"
-                        class="merch-add-button"
-                        {% if not product.has_stock %}disabled{% endif %}
-                    >
-                        <i
-                            class="fa-solid fa-cart-plus"
-                            aria-hidden="true"
-                        ></i>
-
-                        {% if product.has_stock %}Add to cart{% else %}Sold out{% endif %}
-                    </button>
+                    <a class="merch-add-button" href="{{ url_for('main.merch_product', product_id=product.id) }}">View details{% if not product.has_stock %} · Sold out{% endif %}</a>
                     {% if is_merch_admin %}
-                    <a class="merch-edit-link" href="{{ url_for('main.merch_product_edit', product_id=product.id) }}">Edit listing</a>
+                    <div class="merch-listing-actions">
+                        <a class="merch-edit-link" href="{{ url_for('main.merch_product_edit', product_id=product.id) }}">Edit listing</a>
+                        <a class="merch-delete-link" href="{{ url_for('main.merch_product_edit', product_id=product.id) }}#delete-listing">Delete listing</a>
+                    </div>
                     {% endif %}
                 </div>
             </article>
+            {% else %}
+            <p class="merch-empty-page">New merchandise is on the way. Check back soon!</p>
             {% endfor %}
         </div>
     </div>
