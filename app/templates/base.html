@@ -18,7 +18,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
 </head>
-    <body>
+    <body class="{% block body_class %}{% endblock %}">
         <header>
             <div class="top-bar" style="position: sticky; top: 0; z-index: 1000;">
                 <a href="{{ url_for('main.home') }}" class="logo">

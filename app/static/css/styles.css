@@ -2419,7 +2419,7 @@ html, body {
 }
 
 
-header, .top-bar {
+body > header, .top-bar {
     background-color: #FFFFFF !important;
     background-image: none !important;
 }
@@ -2673,13 +2673,7 @@ header, .top-bar {
   --merch-pink: #f8d7fc;
   --merch-text: #333333;
 
-  background:
-    radial-gradient(
-      circle at top right,
-      rgba(230, 196, 236, 0.45),
-      transparent 35rem
-    ),
-    linear-gradient(180deg, #fff 0%, #f7fbfa 100%);
+  background: #fff url('../TopoMap.SVG.svg') center / cover;
 
   color: var(--merch-text);
   min-height: calc(100vh - 90px);
@@ -2752,9 +2746,11 @@ header, .top-bar {
 }
 
 .merch-product-card {
-  background-image: url('../TopoMap.SVG.svg');
-  background-position: center;
-  background-size: cover;
+  background: #fff;
+  border: 1px solid #292d2e;
+  border-radius: 36px;
+  box-shadow: 8px 8px 0 var(--merch-teal),
+              9px 9px 0 #596564;
 }
 
 .merch-image-wrap {
@@ -2846,7 +2842,7 @@ header, .top-bar {
 }
 
 .merch-product-info {
-  background: rgba(255, 255, 255, 0.86);
+  background: #fff;
   border-radius: 16px;
   display: grid;
   gap: 18px;
@@ -3115,7 +3111,7 @@ header, .top-bar {
   }
 
   .merch-product-options {
-    grid-template-columns: 1fr 90px;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -3637,6 +3633,97 @@ header, .top-bar {
 
 
 /* Merchandise previews and item pages */
+.merch-catalog-page .merch-shell {
+  max-width: 1480px;
+}
+
+.merch-catalog-page .merch-hero-copy {
+  background: #fff;
+  border: 2px solid #292d2e;
+  border-radius: 36px;
+  box-shadow: 5px 6px 0 var(--merch-lavender), 6px 7px 0 #292d2e;
+  display: block;
+  max-width: 1160px;
+  padding: 16px 24px;
+}
+
+.merch-catalog-page .merch-hero h1 {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: clamp(1.35rem, 3.2vw, 3rem);
+  gap: 8px 24px;
+  justify-content: center;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.merch-brand {
+  color: var(--merch-teal);
+  font-size: 1.55em;
+  font-weight: 700;
+  letter-spacing: -0.08em;
+  padding-right: 0.08em;
+  -webkit-text-stroke: 1px #292d2e;
+}
+
+.merch-catalog-page .merch-product-grid {
+  align-items: stretch;
+  gap: 38px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.merch-catalog-page .merch-product-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.merch-catalog-page .merch-product-info {
+  flex: 1;
+  grid-template-rows: 1fr auto;
+  margin: 0;
+  padding: 18px 28px 30px;
+}
+
+.merch-catalog-page .merch-product-info h2 {
+  font-size: clamp(1.1rem, 1.5vw, 1.45rem);
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+
+.merch-catalog-page .merch-price {
+  color: #556269;
+  font-size: 1.4rem;
+}
+
+.merch-catalog-page .merch-add-button {
+  background: var(--merch-lavender);
+  border: 1px solid #292d2e;
+  color: #292d2e;
+}
+
+.merch-catalog-page .merch-add-button:hover {
+  background: #d9b3e0;
+}
+
+@media (max-width: 1100px) {
+  .merch-catalog-page .merch-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 30px;
+  }
+}
+
+@media (max-width: 640px) {
+  .merch-catalog-page .merch-product-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .merch-catalog-page .merch-hero-copy { padding: 18px 12px; }
+  .merch-catalog-page .merch-hero h1 { gap: 8px 12px; }
+  .merch-catalog-page .merch-product-info { padding: 18px 22px 26px; }
+}
+
 .merch-product-preview {
   aspect-ratio: 1;
   background: #fff;
@@ -3706,4 +3793,191 @@ header, .top-bar {
 @media (max-width: 760px) {
   .merch-product-detail { grid-template-columns: minmax(0, 1fr); padding: 0; }
   .merch-product-detail .merch-product-info { padding: 18px; }
+}
+
+/* Home page: outlined banners and photo cards */
+.home-route .top-bar {
+  padding: 8px clamp(14px, 2vw, 36px);
+}
+
+.home-route .logo-icon {
+  margin-right: 0;
+  width: clamp(64px, 6vw, 112px);
+}
+
+.home-route .right-menu {
+  gap: clamp(6px, 1vw, 18px);
+}
+
+.home-route .right-menu > a {
+  font-size: clamp(1rem, 1.8vw, 2rem);
+}
+
+.home-route .social {
+  align-items: center;
+  display: flex;
+}
+
+.home-route .social-icon i {
+  font-size: clamp(1.7rem, 2.8vw, 3rem) !important;
+}
+
+.home-route .menu-items .dropdown-toggle {
+  border-radius: 22px;
+  height: clamp(42px, 3.6vw, 62px);
+  margin: 0;
+  width: clamp(44px, 4.5vw, 76px);
+}
+
+.home-page {
+  background: #fff url('../TopoMap.SVG.svg') center top / cover;
+  min-height: calc(100vh - 90px);
+  padding: clamp(28px, 3vw, 48px) clamp(18px, 7vw, 120px) 64px;
+}
+
+.home-page .hero-text-group {
+  gap: 0;
+  margin: 0 auto clamp(38px, 4vw, 72px);
+  max-width: 1520px;
+  padding: 0;
+}
+
+.home-page .text-chip {
+  background: #fff;
+  border: 1px solid #292d2e;
+  border-radius: 48px;
+  max-width: 100%;
+  min-width: 0;
+  text-align: center;
+  width: fit-content;
+}
+
+.home-page .title-chip {
+  box-shadow: 6px 10px 0 #ecd7ed, 7px 11px 0 #596564;
+  padding: clamp(16px, 1.8vw, 30px) clamp(20px, 2.8vw, 48px);
+  z-index: 2;
+}
+
+.home-page .subtitle-chip {
+  box-shadow: 4px 8px 0 #7db3b0, 5px 9px 0 #596564;
+  margin-top: -2px;
+  padding: clamp(14px, 1.2vw, 22px) clamp(20px, 2.4vw, 42px);
+  z-index: 1;
+}
+
+.home-page .title-chip h2,
+.home-page .subtitle-chip p {
+  color: #302e24;
+  display: block;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0;
+  text-shadow: none;
+  white-space: normal;
+}
+
+.home-page .title-chip h2 {
+  font-size: clamp(1.9rem, 4.1vw, 4.75rem);
+}
+
+.home-page .subtitle-chip p {
+  font-size: clamp(1.15rem, 2.4vw, 2.75rem);
+}
+
+.home-page .card-container {
+  display: grid;
+  gap: clamp(26px, 5vw, 90px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 auto;
+  max-width: 1660px;
+  padding: 0;
+}
+
+.home-page .card {
+  aspect-ratio: 5 / 6;
+  background: #fff;
+  border: 2px solid #292d2e;
+  border-radius: 44px;
+  box-shadow: 10px 10px 0 #ecd7ed;
+  display: block;
+  height: auto;
+  min-width: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.home-page .card-link {
+  border-radius: inherit;
+}
+
+.home-page .card-content {
+  background: #fff;
+  border: 1px solid #292d2e;
+  border-radius: 40px;
+  box-shadow: none;
+  left: -2px;
+  max-width: calc(100% + 4px);
+  min-width: 66%;
+  padding: clamp(16px, 1.4vw, 24px) clamp(22px, 2.2vw, 40px);
+  text-align: center;
+  top: -2px;
+}
+
+.home-page .card h3 {
+  color: #7db3b0;
+  font-size: clamp(1.55rem, 2.7vw, 3.5rem);
+  line-height: 1.1;
+}
+
+.home-page #merch .card-image {
+  padding: clamp(68px, 6vw, 110px) 10px 12px;
+}
+
+.home-page .card-overlay {
+  padding: 18px;
+}
+
+.home-page .overlay-button {
+  border-radius: 28px;
+  font-size: clamp(0.95rem, 1.25vw, 1.4rem);
+  line-height: 1.35;
+  padding: 14px 20px;
+}
+
+.home-page .card:focus-within .card-overlay {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.home-page .card:focus-within {
+  outline: 3px solid #5a8e8c;
+  outline-offset: 5px;
+}
+
+@media (max-width: 900px) {
+  .home-page .card-container {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 520px;
+  }
+
+  .home-page .card-content { padding: 18px 28px; }
+  .home-page .card h3 { font-size: clamp(1.7rem, 5.4vw, 2.8rem); }
+}
+
+@media (max-width: 640px) {
+  .home-route .logo-icon { width: 52px; }
+  .home-route .right-menu { gap: 4px; }
+  .home-route .right-menu > a { font-size: clamp(0.8rem, 3vw, 1rem); margin: 0 4px; }
+  .home-route .social a { margin: 0 4px; }
+  .home-route .social-icon i { font-size: 1.35rem !important; }
+  .home-route .menu-items .dropdown-toggle { border-radius: 16px; }
+  .home-page { padding: 28px 18px 48px; }
+  .home-page .text-chip { border-radius: 30px; }
+  .home-page .subtitle-chip { margin-top: 10px; }
+  .home-page .card { border-radius: 34px; }
+  .home-page .card-content { border-radius: 30px; padding: 16px 22px; }
+}
+
+@media (hover: none) {
+  .home-page .card-overlay { opacity: 1; transform: none; }
 }
