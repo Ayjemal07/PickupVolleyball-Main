@@ -172,6 +172,11 @@ class MerchManagementTests(unittest.TestCase):
         self.assertIn(first.image.encode(), listing)
         self.assertIn(second.image.encode(), listing)
         self.assertIn(b'Show photo 4 of 4', listing)
+        catalog = self.client.get('/merch').data
+        self.assertIn(first.image.encode(), catalog)
+        self.assertIn(second.image.encode(), catalog)
+        self.assertIn(b'Show photo 4 of 4', catalog)
+        self.assertIn(b'Next photo of Test Shirt', catalog)
         response = self.client.post(
             '/merch/admin/products/test-shirt/edit',
             data={
@@ -209,7 +214,10 @@ class MerchManagementTests(unittest.TestCase):
         db.session.commit()
         listing = self.client.get('/merch').data
         self.assertIn(b'/merch/products/test-shirt', listing)
-        self.assertNotIn(b'Relaxed fit', listing)
+        self.assertIn(b'Relaxed fit', listing)
+        self.assertIn(b'merch-card-description', listing)
+        self.assertIn(b'&lt;script&gt;', listing)
+        self.assertIn(b'images/merch/puvb-logo.png', listing)
         self.assertNotIn(b'merch-variant', listing)
         self.assertNotIn(b'merch-quantity', listing)
         detail = self.client.get('/merch/products/test-shirt')

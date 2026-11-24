@@ -3,13 +3,18 @@
 {% block title %}
 Merch | Pick Up Volleyball
 {% endblock %}
+{% block body_class %}merch-route{% endblock %}
 
 {% block content %}
 <section class="merch-page merch-catalog-page">
     <div class="merch-shell">
         <header class="merch-hero">
             <div class="merch-hero-copy">
-                <h1>Rep your <span class="merch-brand">PUVB</span> community!</h1>
+                <h1>
+                    <span>Rep your</span>
+                    <img class="merch-brand" src="{{ url_for('static', filename='images/merch/puvb-logo.png') }}" alt="PUVB">
+                    <span>community!</span>
+                </h1>
             </div>
 
             <a
@@ -55,10 +60,8 @@ Merch | Pick Up Volleyball
         <div class="merch-product-grid">
             {% for product in products %}
             <article class="merch-product-card">
-                <a class="merch-product-preview" href="{{ url_for('main.merch_product', product_id=product.id) }}">
-                    <img src="{{ url_for('static', filename='images/' ~ product.image) }}"
-                         alt="{{ product.name }}" loading="lazy">
-                </a>
+                {% set gallery_link = url_for('main.merch_product', product_id=product.id) %}
+                {% include "_merch_gallery.html" %}
                 <div class="merch-product-info">
                     <div>
                         <h2><a href="{{ url_for('main.merch_product', product_id=product.id) }}">{{ product.name }}</a></h2>

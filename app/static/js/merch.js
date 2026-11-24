@@ -63,9 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.merch-image-wrap').forEach(wrap => {
         const slides = Array.from(wrap.querySelectorAll('.merch-image-slide'));
         const dots = Array.from(wrap.querySelectorAll('.merch-gallery-dot'));
+        const count = wrap.querySelector('.merch-gallery-count');
+        const hoverTarget = wrap.closest('.merch-product-card') || wrap;
         let active = 0;
         let manuallySelected = false;
         let hoverPreview = false;
+        let touchStart = null;
+        let suppressClickUntil = 0;
 
         function showPhoto(index, manual = false) {
             active = (index + slides.length) % slides.length;
@@ -83,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dot.classList.toggle('is-active', selected);
                 dot.setAttribute('aria-current', String(selected));
             });
+            if (count) count.textContent = `Photo ${active + 1} of ${slides.length}`;
         }
 
         wrap.querySelector('.is-prev').addEventListener('click', () => {
@@ -94,13 +99,13 @@ document.addEventListener('DOMContentLoaded', () => {
         dots.forEach(dot => dot.addEventListener('click', () => {
             showPhoto(Number(dot.dataset.index), true);
         }));
-        wrap.addEventListener('pointerenter', event => {
+        hoverTarget.addEventListener('pointerenter', event => {
             if (event.pointerType === 'mouse' && !manuallySelected && active === 0) {
                 hoverPreview = true;
                 showPhoto(1);
             }
         });
-        wrap.addEventListener('pointerleave', event => {
+        hoverTarget.addEventListener('pointerleave', event => {
             if (event.pointerType === 'mouse' && hoverPreview) {
                 hoverPreview = false;
                 showPhoto(0);
@@ -112,6 +117,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 showPhoto(active + (event.key === 'ArrowRight' ? 1 : -1), true);
             }
         });
+        wrap.addEventListener('pointerdown', event => {
+            if (event.pointerType === 'touch') {
+                touchStart = {x: event.clientX, y: event.clientY};
+            }
+        });
+        wrap.addEventListener('pointercancel', () => { touchStart = null; });
+        wrap.addEventListener('pointerup', event => {
+            if (!touchStart || event.pointerType !== 'touch') return;
+            const dx = event.clientX - touchStart.x;
+            const dy = event.clientY - touchStart.y;
+            touchStart = null;
+            if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                showPhoto(active + (dx < 0 ? 1 : -1), true);
+                suppressClickUntil = Date.now() + 400;
+            }
+        });
+        wrap.addEventListener('click', event => {
+            if (Date.now() < suppressClickUntil) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }, true);
         wrap.resetGallery = () => {
             manuallySelected = false;
             hoverPreview = false;

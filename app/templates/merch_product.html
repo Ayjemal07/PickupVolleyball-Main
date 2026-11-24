@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}{{ product.name }} | Pick Up Volleyball{% endblock %}
+{% block body_class %}merch-route{% endblock %}
 
 {% block content %}
 <section class="merch-page">
@@ -23,49 +24,8 @@
                     filename='images/' ~ product.image
                 ) }}"
             >
-                {% set image_count = 2 + product.gallery_images|length %}
-                <div class="merch-image-wrap" tabindex="0" role="group" aria-label="Photos of {{ product.name }}">
-                    <img
-                        class="merch-image-slide is-active"
-                        src="{{ url_for(
-                            'static',
-                            filename='images/' ~ product.image
-                        ) }}"
-                        alt="{{ product.name }}, photo 1 of {{ image_count }}"
-                        loading="lazy"
-                        aria-hidden="false"
-                    >
-                    <img
-                        class="merch-image-slide{% if product.detail_image == product.image %} is-zoom{% endif %}"
-                        src="{{ url_for(
-                            'static',
-                            filename='images/' ~ product.detail_image
-                        ) }}"
-                        alt="{{ product.name }}, photo 2 of {{ image_count }}"
-                        loading="lazy"
-                        style="object-position: {{ product.detail_position }}"
-                        aria-hidden="true"
-                    >
-                    {% for image in product.gallery_images %}
-                    <img class="merch-image-slide"
-                         src="{{ url_for('static', filename='images/' ~ image) }}"
-                         alt="{{ product.name }}, photo {{ loop.index + 2 }} of {{ image_count }}"
-                         loading="lazy" aria-hidden="true">
-                    {% endfor %}
-                    <button type="button" class="merch-gallery-arrow is-prev"
-                            aria-label="Previous photo of {{ product.name }}">&#10094;</button>
-                    <button type="button" class="merch-gallery-arrow is-next"
-                            aria-label="Next photo of {{ product.name }}">&#10095;</button>
-                    <div class="merch-gallery-dots" role="group"
-                         aria-label="Choose photo of {{ product.name }}">
-                        {% for index in range(image_count) %}
-                        <button type="button" class="merch-gallery-dot{% if index == 0 %} is-active{% endif %}"
-                                data-index="{{ index }}"
-                                aria-label="Show photo {{ index + 1 }} of {{ image_count }} for {{ product.name }}"
-                                aria-current="{{ 'true' if index == 0 else 'false' }}"></button>
-                        {% endfor %}
-                    </div>
-                </div>
+                {% set gallery_link = none %}
+                {% include "_merch_gallery.html" %}
 
                 <div class="merch-product-info">
                     <div>

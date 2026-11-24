@@ -1,0 +1,41 @@
+{% set image_count = 2 + product.gallery_images|length %}
+<div class="merch-gallery">
+    <div class="merch-image-wrap" tabindex="0" role="group" aria-label="Photos of {{ product.name }}">
+        {% if gallery_link %}
+        <a class="merch-gallery-product-link" href="{{ gallery_link }}" aria-label="View details for {{ product.name }}">
+        {% endif %}
+            <img class="merch-image-slide is-active"
+                 src="{{ url_for('static', filename='images/' ~ product.image) }}"
+                 alt="{{ product.name }}, photo 1 of {{ image_count }}"
+                 loading="lazy" draggable="false" aria-hidden="false">
+            <img class="merch-image-slide{% if product.detail_image == product.image %} is-zoom{% endif %}"
+                 src="{{ url_for('static', filename='images/' ~ product.detail_image) }}"
+                 alt="{{ product.name }}, photo 2 of {{ image_count }}"
+                 loading="lazy" draggable="false" aria-hidden="true"
+                 style="object-position: {{ product.detail_position }}">
+            {% for image in product.gallery_images %}
+            <img class="merch-image-slide"
+                 src="{{ url_for('static', filename='images/' ~ image) }}"
+                 alt="{{ product.name }}, photo {{ loop.index + 2 }} of {{ image_count }}"
+                 loading="lazy" draggable="false" aria-hidden="true">
+            {% endfor %}
+        {% if gallery_link %}
+        </a>
+        {% endif %}
+        <button type="button" class="merch-gallery-arrow is-prev" aria-label="Previous photo of {{ product.name }}">&#10094;</button>
+        <button type="button" class="merch-gallery-arrow is-next" aria-label="Next photo of {{ product.name }}">&#10095;</button>
+        <span class="merch-gallery-count" aria-live="polite" aria-atomic="true">Photo 1 of {{ image_count }}</span>
+        <div class="merch-gallery-dots" role="group" aria-label="Choose photo of {{ product.name }}">
+            {% for index in range(image_count) %}
+            <button type="button" class="merch-gallery-dot{% if index == 0 %} is-active{% endif %}"
+                    data-index="{{ index }}" aria-label="Show photo {{ index + 1 }} of {{ image_count }} for {{ product.name }}"
+                    aria-current="{{ 'true' if index == 0 else 'false' }}"></button>
+            {% endfor %}
+        </div>
+    </div>
+    {% if gallery_link %}
+    <div class="merch-card-description">
+        <p>{{ product.description|truncate(160) if product.description else 'Explore colors, sizes, and product details.' }}</p>
+    </div>
+    {% endif %}
+</div>
