@@ -1322,6 +1322,16 @@ html {
   box-shadow:6px 6px 0 rgba(230, 196, 236, 0.9);
 }
 
+.event-card {
+  scroll-margin-top: 90px;
+}
+
+.event-card.is-calendar-selected {
+  outline: 3px solid #5a8e8c;
+  outline-offset: 4px;
+  box-shadow: 8px 8px 0 rgba(230, 196, 236, 0.9);
+}
+
 .event-header {
   padding: 18px 18px 10px;
   border-bottom: none;
@@ -1491,6 +1501,7 @@ html {
 }
 
 .fc-event {
+  cursor: pointer;
   font-size: 0.6rem; /* Smaller event text */
   padding: 2px;
 }

@@ -1,6 +1,49 @@
 
 
 
+let calendarHighlightTimer = null;
+
+function scrollToCalendarEvent(info) {
+    info.jsEvent?.preventDefault();
+    info.jsEvent?.stopPropagation();
+    const eventId = String(info.event.id || '');
+    if (!eventId) return;
+
+    const findCard = pane => Array.from(pane?.querySelectorAll('.event-card') || [])
+        .find(card => card.dataset.eventId === eventId);
+    // Upcoming cards appear in two tabs; use the copy below the calendar.
+    let card = findCard(document.getElementById('calendar-view'));
+    if (!card) {
+        const pastCard = findCard(document.getElementById('past'));
+        const pastTab = document.querySelector('.nav-tabs .nav-link[href="#past"]');
+        if (pastCard && pastTab) {
+            pastTab.click();
+            card = pastCard;
+        }
+    }
+    if (!card) {
+        window.location.assign('/events/' + encodeURIComponent(eventId));
+        return;
+    }
+
+    window.clearTimeout(calendarHighlightTimer);
+    document.querySelectorAll('.event-card.is-calendar-selected').forEach(selected => {
+        selected.classList.remove('is-calendar-selected');
+    });
+    card.classList.add('is-calendar-selected');
+    card.setAttribute('tabindex', '-1');
+    card.focus({preventScroll: true});
+    card.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 'instant' : 'smooth',
+        block: 'start',
+    });
+    calendarHighlightTimer = window.setTimeout(() => {
+        card.classList.remove('is-calendar-selected');
+        calendarHighlightTimer = null;
+    }, 3000);
+}
+
 function sortEventsByDate(events) {
     if (!Array.isArray(events)) return [];
     return events.sort((a, b) => new Date(a.start) - new Date(b.start));
@@ -471,6 +514,8 @@ document.addEventListener('DOMContentLoaded', function () {
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             events: calendarEventsData, // Use combined data for calendar
+            eventClick: scrollToCalendarEvent,
+            eventInteractive: true,
             selectable: userRole === 'admin',
             dateClick: function (info) {
                 if (userRole === 'admin') openCreateEventModal(info.dateStr);
